@@ -8,7 +8,7 @@ class MedallionError(Exception):
         message (str): specific error message
         root_exception (Exception): Exception instance of root exception
     """
-    def __init__(self, message, root_exception):
+    def __init__(self, message, root_exception=None):
         self.message = message
         self.root_exception = root_exception
 

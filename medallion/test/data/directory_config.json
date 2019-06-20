@@ -1,0 +1,39 @@
+{
+  "backend": {
+    "module": "medallion.backends.directory_backend",
+    "module_class": "DirectoryBackend",
+    "path": "./serve/directory/",
+    "discovery": {
+      "title": "Directory Backend",
+      "description": "Indicators",
+      "contact": "",
+      "default": "http://localhost:5001/default/",
+      "api_roots": [
+        "http://localhost:5001/default/"
+      ]
+    },
+    "api-root": {
+      "title": "",
+      "description": "",
+      "versions": [
+        "taxii-2.0"
+      ],
+      "max-content-length": 9765625
+    },
+    "collection": {
+      "id": "",
+      "title": "",
+      "description": "",
+      "can_read": true,
+      "can_write": false,
+      "media_types": [
+        "application/vnd.oasis.stix+json; version=2.0"
+      ]
+    }
+  },
+  "users": {
+    "admin": "Password0",
+    "user1": "Password1",
+    "user2": "Password2"
+  }
+}
