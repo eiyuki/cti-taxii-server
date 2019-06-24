@@ -7,9 +7,9 @@
       "title": "Directory Backend",
       "description": "Indicators",
       "contact": "",
-      "default": "http://localhost:5001/default/",
+      "default": "http://localhost:5000/default/",
       "api_roots": [
-        "http://localhost:5001/default/"
+        "http://localhost:5000/default/"
       ]
     },
     "api-root": {
