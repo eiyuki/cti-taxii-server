@@ -3,8 +3,10 @@ import json
 import logging
 
 import flask
-from flask import Flask, Response, current_app
-from flask_httpauth import HTTPBasicAuth
+import jwt
+from datetime import datetime, timedelta
+from flask import Flask, Response, current_app, session, g
+from flask_httpauth import HTTPTokenAuth
 
 from medallion.exceptions import BackendError, ProcessingError
 from medallion.version import __version__  # noqa
@@ -18,20 +20,7 @@ ch.setFormatter(logging.Formatter("[%(name)s] [%(levelname)-8s] [%(asctime)s] %(
 log = logging.getLogger(__name__)
 log.addHandler(ch)
 
-application_instance = Flask(__name__)
-auth = HTTPBasicAuth()
-
-
-def load_app(config_file):
-    with open(config_file, "r") as f:
-        configuration = json.load(f)
-
-    set_users_config(application_instance, configuration["users"])
-    set_taxii_config(application_instance, configuration["taxii"])
-    init_backend(application_instance, configuration["backend"])
-    register_blueprints(application_instance)
-
-    return application_instance
+auth = HTTPTokenAuth('JWT')
 
 
 def set_users_config(flask_application_instance, config):
@@ -70,28 +59,45 @@ def init_backend(flask_application_instance, config_info):
         current_app.medallion_backend = connect_to_backend(config_info)
 
 
-@auth.get_password
-def get_pwd(username):
-    if username in current_app.users_backend:
-        return current_app.users_backend.get(username)
-    return None
+def jwt_encode(username):
+    exp = datetime.utcnow() + timedelta(minutes=int(current_app.config.get("JWT_EXP", 60)))
+    payload = {
+        'exp': exp,
+        'user': username
+    }
+    return jwt.encode(payload, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
 
 
-def register_blueprints(flask_application_instance):
+def jwt_decode(token):
+    return jwt.decode(token, key=current_app.config['JWT_SECRET_KEY'])
+
+
+@auth.verify_token
+def verify_token(token):
+    current_dt = datetime.utcnow()
+    decoded_token = jwt_decode(token)
+    expiration = datetime.utcfromtimestamp(float(decoded_token['exp']))
+    is_authorized = decoded_token['user'] in session and expiration > current_dt
+    if is_authorized:
+        g.user = decoded_token['user']
+    return is_authorized
+
+
+def register_blueprints(app):
     from medallion.views import collections
     from medallion.views import discovery
     from medallion.views import manifest
     from medallion.views import objects
+    from medallion.views.auth import auth_bp
 
-    with flask_application_instance.app_context():
-        log.debug("Registering medallion blueprints into {}".format(current_app))
-        current_app.register_blueprint(collections.mod)
-        current_app.register_blueprint(discovery.mod)
-        current_app.register_blueprint(manifest.mod)
-        current_app.register_blueprint(objects.mod)
+    log.debug("Registering medallion blueprints into {}".format(app))
+    app.register_blueprint(collections.mod)
+    app.register_blueprint(discovery.mod)
+    app.register_blueprint(manifest.mod)
+    app.register_blueprint(objects.mod)
+    app.register_blueprint(auth_bp)
 
 
-@application_instance.errorhandler(500)
 def handle_error(error):
     error = {
         "title": error.args[0],
@@ -102,7 +108,6 @@ def handle_error(error):
                     mimetype=MEDIA_TYPE_TAXII_V20)
 
 
-@application_instance.errorhandler(ProcessingError)
 def handle_processing_error(error):
     e = {
         "title": "ProcessingError",
@@ -114,7 +119,6 @@ def handle_processing_error(error):
                     mimetype=MEDIA_TYPE_TAXII_V20)
 
 
-@application_instance.errorhandler(BackendError)
 def handle_backend_error(error):
     e = {
         "title": "MongoBackendError",
@@ -124,3 +128,33 @@ def handle_backend_error(error):
     return Response(response=flask.json.dumps(e),
                     status=500,
                     mimetype=MEDIA_TYPE_TAXII_V20)
+
+
+def handler_unauthorized(error):
+    return flask.jsonify(error), 401
+
+
+def register_error_handlers(app):
+    app.register_error_handler(500, handle_error)
+    app.register_error_handler(ProcessingError, handle_processing_error)
+    app.register_error_handler(BackendError, handle_backend_error)
+    app.register_error_handler(jwt.exceptions.InvalidTokenError, handler_unauthorized)
+    app.register_error_handler(401, handler_unauthorized)
+
+
+def create_app(config_file):
+    app = Flask(__name__)
+
+    with open(config_file, "r") as f:
+        configuration = json.load(f)
+
+    app.config.from_mapping(**configuration)
+
+    set_users_config(app, configuration["users"])
+    set_taxii_config(app, configuration["taxii"])
+    init_backend(app, configuration["backend"])
+
+    register_blueprints(app)
+    register_error_handlers(app)
+
+    return app

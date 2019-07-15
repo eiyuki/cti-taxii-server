@@ -1,10 +1,8 @@
 import argparse
-import json
 import logging
 import textwrap
 
-from medallion import (__version__, application_instance, init_backend,
-                       register_blueprints, set_taxii_config, set_users_config)
+from medallion import (__version__, create_app)
 
 log = logging.getLogger("medallion")
 
@@ -12,6 +10,7 @@ log = logging.getLogger("medallion")
 class NewlinesHelpFormatter(argparse.RawDescriptionHelpFormatter):
     """Custom help formatter to insert newlines between argument help texts.
     """
+
     def _split_lines(self, text, width):
         text = self._whitespace_matcher.sub(" ", text).strip()
         txt = textwrap.wrap(text, width)
@@ -71,15 +70,8 @@ def main():
     medallion_args = medallion_parser.parse_args()
     log.setLevel(medallion_args.log_level)
 
-    with open(medallion_args.CONFIG_PATH, "r") as f:
-        configuration = json.load(f)
-
-    set_users_config(application_instance, configuration["users"])
-    set_taxii_config(application_instance, configuration["taxii"])
-    init_backend(application_instance, configuration["backend"])
-    register_blueprints(application_instance)
-
-    application_instance.run(
+    app = create_app(medallion_args.CONFIG_PATH)
+    app.run(
         host=medallion_args.host,
         port=medallion_args.port,
         debug=medallion_args.debug_mode
