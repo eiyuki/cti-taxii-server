@@ -71,11 +71,7 @@ def main():
     log.setLevel(medallion_args.log_level)
 
     app = create_app(medallion_args.CONFIG_PATH)
-    app.run(
-        host=medallion_args.host,
-        port=medallion_args.port,
-        debug=medallion_args.debug_mode
-    )
+    app.run(host=medallion_args.host, port=medallion_args.port)
 
 
 if __name__ == "__main__":

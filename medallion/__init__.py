@@ -77,7 +77,7 @@ def verify_token(token):
     current_dt = datetime.utcnow()
     decoded_token = jwt_decode(token)
     expiration = datetime.utcfromtimestamp(float(decoded_token['exp']))
-    is_authorized = decoded_token['user'] in session and expiration > current_dt
+    is_authorized = decoded_token['user'] in session and expiration > current_dt or current_app.debug
     if is_authorized:
         g.user = decoded_token['user']
     return is_authorized
@@ -130,7 +130,7 @@ def handle_backend_error(error):
                     mimetype=MEDIA_TYPE_TAXII_V20)
 
 
-def handler_unauthorized(error):
+def handle_unauthorized(error):
     return flask.jsonify(error), 401
 
 
@@ -138,8 +138,8 @@ def register_error_handlers(app):
     app.register_error_handler(500, handle_error)
     app.register_error_handler(ProcessingError, handle_processing_error)
     app.register_error_handler(BackendError, handle_backend_error)
-    app.register_error_handler(jwt.exceptions.InvalidTokenError, handler_unauthorized)
-    app.register_error_handler(401, handler_unauthorized)
+    app.register_error_handler(jwt.exceptions.InvalidTokenError, handle_unauthorized)
+    app.register_error_handler(401, handle_unauthorized)
 
 
 def create_app(config_file):
