@@ -53,7 +53,6 @@ setup(
         'Flask-HTTPAuth',
         'pytz',
         'six',
-        'pymongo',
     ],
     entry_points={
         'console_scripts': [
