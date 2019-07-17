@@ -54,6 +54,7 @@ setup(
         'pytz',
         'six',
         'pymongo',
+        'pyjwt',
     ],
     entry_points={
         'console_scripts': [

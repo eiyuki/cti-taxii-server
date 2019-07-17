@@ -3,7 +3,7 @@ import os
 import unittest
 
 from medallion import (application_instance, init_backend, register_blueprints,
-                       set_taxii_config, set_users_config)
+                       set_taxii_config, set_users_config, register_error_handlers)
 from medallion.test.data.initialize_mongodb import reset_db
 
 
@@ -37,7 +37,7 @@ class TaxiiTest(unittest.TestCase):
             "filename": DATA_FILE
         },
         "users": {
-            "admin": "Password0"
+            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
         },
         "taxii": {
             "max_page_size": 20
@@ -51,7 +51,7 @@ class TaxiiTest(unittest.TestCase):
             "uri": "mongodb://localhost:27017/"
         },
         "users": {
-            "admin": "Password0"
+            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
         },
         "taxii": {
             "max_page_size": 20
@@ -60,6 +60,7 @@ class TaxiiTest(unittest.TestCase):
 
     def setUp(self):
         self.app = application_instance
+        register_error_handlers(self.app)
         self.app_context = application_instance.app_context()
         self.app_context.push()
         self.app.testing = True

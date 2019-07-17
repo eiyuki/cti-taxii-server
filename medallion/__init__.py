@@ -5,8 +5,9 @@ import logging
 import flask
 import jwt
 from datetime import datetime, timedelta
-from flask import Flask, Response, current_app, session, g
-from flask_httpauth import HTTPTokenAuth
+from flask import Flask, Response, current_app, session, g, abort
+from flask_httpauth import HTTPTokenAuth, HTTPBasicAuth, MultiAuth
+from werkzeug.security import check_password_hash
 
 from medallion.exceptions import BackendError, ProcessingError
 from medallion.version import __version__  # noqa
@@ -20,7 +21,12 @@ ch.setFormatter(logging.Formatter("[%(name)s] [%(levelname)-8s] [%(asctime)s] %(
 log = logging.getLogger(__name__)
 log.addHandler(ch)
 
-auth = HTTPTokenAuth('JWT')
+jwt_auth = HTTPTokenAuth(scheme='JWT')
+basic_auth = HTTPBasicAuth()
+token_auth = HTTPTokenAuth(scheme='Token')
+auth = MultiAuth(basic_auth, token_auth)
+
+application_instance = Flask(__name__)
 
 
 def set_users_config(flask_application_instance, config):
@@ -57,30 +63,6 @@ def init_backend(flask_application_instance, config_info):
     with flask_application_instance.app_context():
         log.debug("Registering medallion_backend into {}".format(current_app))
         current_app.medallion_backend = connect_to_backend(config_info)
-
-
-def jwt_encode(username):
-    exp = datetime.utcnow() + timedelta(minutes=int(current_app.config.get("JWT_EXP", 60)))
-    payload = {
-        'exp': exp,
-        'user': username
-    }
-    return jwt.encode(payload, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
-
-
-def jwt_decode(token):
-    return jwt.decode(token, key=current_app.config['JWT_SECRET_KEY'])
-
-
-@auth.verify_token
-def verify_token(token):
-    current_dt = datetime.utcnow()
-    decoded_token = jwt_decode(token)
-    expiration = datetime.utcfromtimestamp(float(decoded_token['exp']))
-    is_authorized = decoded_token['user'] in session and expiration > current_dt or current_app.debug
-    if is_authorized:
-        g.user = decoded_token['user']
-    return is_authorized
 
 
 def register_blueprints(app):
@@ -130,20 +112,64 @@ def handle_backend_error(error):
                     mimetype=MEDIA_TYPE_TAXII_V20)
 
 
-def handle_unauthorized(error):
-    return flask.jsonify(error), 401
-
-
 def register_error_handlers(app):
     app.register_error_handler(500, handle_error)
     app.register_error_handler(ProcessingError, handle_processing_error)
     app.register_error_handler(BackendError, handle_backend_error)
-    app.register_error_handler(jwt.exceptions.InvalidTokenError, handle_unauthorized)
-    app.register_error_handler(401, handle_unauthorized)
+
+
+def jwt_encode(username):
+    exp = datetime.utcnow() + timedelta(minutes=int(current_app.config.get("JWT_EXP", 60)))
+    payload = {
+        'exp': exp,
+        'user': username
+    }
+    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
+
+def jwt_decode(token):
+    return jwt.decode(token, key=current_app.config['SECRET_KEY'])
+
+
+@basic_auth.verify_password
+def verify_basic_auth(username, password):
+    password_hash = current_app.users_backend.get(username)
+    return False if password_hash is None else check_password_hash(password_hash, password)
+
+
+@jwt_auth.verify_token
+def verify_token(token):
+    current_dt = datetime.utcnow()
+    try:
+        decoded_token = jwt_decode(token)
+        is_authorized = datetime.utcfromtimestamp(float(decoded_token['exp'])) > current_dt
+        if is_authorized:
+            g.user = decoded_token['user']
+    except jwt.exceptions.InvalidTokenError:
+        is_authorized = False
+
+    return is_authorized
+
+
+@token_auth.verify_token
+def api_key_auth(api_key):
+    user = current_app.api_key_backend.get(api_key)
+    if not user:
+        return False
+    g.user = user
+    return True
+
+
+def set_api_key_config(app, config):
+    with app.app_context():
+        log.debug("Registering medallion api keys configuration into {}".format(current_app))
+        app.api_key_backend = config
 
 
 def create_app(config_file):
-    app = Flask(__name__)
+    # TODO: application factory.
+    # app = Flask(__name__)
+    app = application_instance
 
     with open(config_file, "r") as f:
         configuration = json.load(f)
@@ -151,6 +177,7 @@ def create_app(config_file):
     app.config.from_mapping(**configuration)
 
     set_users_config(app, configuration["users"])
+    set_api_key_config(app, configuration["api_keys"])
     set_taxii_config(app, configuration["taxii"])
     init_backend(app, configuration["backend"])
 

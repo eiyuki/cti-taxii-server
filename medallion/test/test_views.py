@@ -8,7 +8,7 @@ import uuid
 import six
 
 from medallion import (application_instance, register_blueprints,
-                       set_taxii_config, set_users_config, test)
+                       set_taxii_config, set_users_config, test, register_error_handlers)
 from medallion.views import MEDIA_TYPE_STIX_V20, MEDIA_TYPE_TAXII_V20
 
 if sys.version_info < (3, 3, 0):
@@ -54,7 +54,7 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
                 "default_page_size": 20
             },
             "users": {
-                "admin": "Password0"
+                "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
             },
             "taxii": {
                 "max_page_size": 20
@@ -178,7 +178,7 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
         }
         r = self.client.get(test.GET_OBJECT_EP, headers=headers)
 
-        self.assertEqual(r.status_code, 416)
+        self.assertEqual(416, r.status_code)
         self.assertEqual(r.headers.get('Content-Range'), 'items */10')
 
     @mock.patch('medallion.backends.base.Backend')
@@ -198,7 +198,7 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
         }
         r = self.client.get(test.GET_OBJECT_EP, headers=headers)
 
-        self.assertEqual(r.status_code, 400)
+        self.assertEqual(400, r.status_code)
 
     @mock.patch('medallion.backends.base.Backend')
     def test_content_range_header_empty_response(self, mock_backend):
@@ -215,5 +215,5 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
         }
         r = self.client.get(test.GET_OBJECT_EP, headers=headers)
 
-        self.assertEqual(r.status_code, 206)
+        self.assertEqual(206, r.status_code)
         self.assertEqual(r.headers.get('Content-Range'), 'items 0-0/0')
