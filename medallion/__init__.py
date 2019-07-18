@@ -21,7 +21,6 @@ ch.setFormatter(logging.Formatter("[%(name)s] [%(levelname)-8s] [%(asctime)s] %(
 log = logging.getLogger(__name__)
 log.addHandler(ch)
 
-jwt_auth = HTTPTokenAuth(scheme='JWT')
 basic_auth = HTTPBasicAuth()
 token_auth = HTTPTokenAuth(scheme='Token')
 auth = MultiAuth(basic_auth, token_auth)
@@ -70,14 +69,12 @@ def register_blueprints(app):
     from medallion.views import discovery
     from medallion.views import manifest
     from medallion.views import objects
-    from medallion.views.auth import auth_bp
 
     log.debug("Registering medallion blueprints into {}".format(app))
     app.register_blueprint(collections.mod)
     app.register_blueprint(discovery.mod)
     app.register_blueprint(manifest.mod)
     app.register_blueprint(objects.mod)
-    app.register_blueprint(auth_bp)
 
 
 def handle_error(error):
@@ -118,37 +115,10 @@ def register_error_handlers(app):
     app.register_error_handler(BackendError, handle_backend_error)
 
 
-def jwt_encode(username):
-    exp = datetime.utcnow() + timedelta(minutes=int(current_app.config.get("JWT_EXP", 60)))
-    payload = {
-        'exp': exp,
-        'user': username
-    }
-    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
-
-
-def jwt_decode(token):
-    return jwt.decode(token, key=current_app.config['SECRET_KEY'])
-
-
 @basic_auth.verify_password
 def verify_basic_auth(username, password):
     password_hash = current_app.users_backend.get(username)
     return False if password_hash is None else check_password_hash(password_hash, password)
-
-
-@jwt_auth.verify_token
-def verify_token(token):
-    current_dt = datetime.utcnow()
-    try:
-        decoded_token = jwt_decode(token)
-        is_authorized = datetime.utcfromtimestamp(float(decoded_token['exp'])) > current_dt
-        if is_authorized:
-            g.user = decoded_token['user']
-    except jwt.exceptions.InvalidTokenError:
-        is_authorized = False
-
-    return is_authorized
 
 
 @token_auth.verify_token
@@ -161,13 +131,15 @@ def api_key_auth(api_key):
 
 
 def set_api_key_config(app, config):
+    if len(config) == 0:
+        current_app.logger.warn("No api keys set.")
     with app.app_context():
         log.debug("Registering medallion api keys configuration into {}".format(current_app))
         app.api_key_backend = config
 
 
 def create_app(config_file):
-    # TODO: application factory.
+    # TODO: convert to actual application factory.
     # app = Flask(__name__)
     app = application_instance
 
@@ -177,7 +149,7 @@ def create_app(config_file):
     app.config.from_mapping(**configuration)
 
     set_users_config(app, configuration["users"])
-    set_api_key_config(app, configuration["api_keys"])
+    set_api_key_config(app, configuration.get('api_keys', {}))
     set_taxii_config(app, configuration["taxii"])
     init_backend(app, configuration["backend"])
 

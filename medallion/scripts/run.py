@@ -42,7 +42,7 @@ def _get_argparser():
 
     parser.add_argument(
         "--debug-mode",
-        default=False,
+        default=None,
         action="store_true",
         help="If set, start application in debug mode.",
     )
