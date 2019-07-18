@@ -31,6 +31,9 @@
       ]
     }
   },
+  "taxii": {
+    "max_page_size": 100
+  },
   "users": {
     "admin": "Password0",
     "user1": "Password1",

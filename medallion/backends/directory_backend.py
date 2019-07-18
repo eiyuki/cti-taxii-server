@@ -112,7 +112,9 @@ class DirectoryBackend(Backend):
 
                 return i
 
-    def get_collections(self, api_root):
+    def get_collections(self, api_root, start_index, end_index):
+        # TODO: use start_index and end_index
+
         self.update_discovery_config()
 
         api_roots = self.discovery_config['api_roots']
@@ -138,10 +140,14 @@ class DirectoryBackend(Backend):
 
                 collections.append(c)
 
-        return collections
+        collections = collections if end_index == -1 else collections[start_index:end_index]
+
+        count = len(collections)
+
+        return count, collections
 
     def get_collection(self, api_root, collection_id):
-        collections = self.get_collections(api_root)
+        count, collections = self.get_collections(api_root, 0, -1)
 
         for c in collections:
             if 'id' in c and collection_id == c['id']:
@@ -153,46 +159,87 @@ class DirectoryBackend(Backend):
 
         return objects
 
-    def add_to_cache(self, path, file_name, modified):
-        fp = os.path.join(path, file_name)
+    def get_modified_time_stamp(self, fp):
+        fp_modified = os.path.getmtime(fp)
+        modified = format_datetime(datetime.datetime.utcfromtimestamp(fp_modified))
 
-        with open(fp, 'r') as raw_json:
-            stix2 = json.load(raw_json)
+        return modified
 
-            if stix2.get('type', '') == 'bundle' and stix2.get('spec_version', '') == '2.0':
-                objects = stix2.get('objects', [])
-                u_objects = self.set_modified_time_stamp(objects, modified)
-
-                self.cache[file_name] = {
-                    'modified': modified,
-                    'objects': u_objects
-                }
-
-                return u_objects
-            else:
-                return []
-
-    def delete_from_cache(self, p):
+    def delete_from_cache(self, api_root):
+        p = os.path.join(self.path, api_root)
         files = [f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) and f.endswith('.json')]
 
-        for f in self.cache.keys():
+        for f in self.cache[api_root]['files'].keys():
             if f not in files:
-                del self.cache[f]
+                del self.cache[api_root]['files'][f]
 
-    def with_cache(self, path, file_name, modified):
-        # Check for deleted files and remove them from the cache
-        self.delete_from_cache(path)
+    def add_to_cache(self, api_root, api_root_modified, file_name, file_modified):
+        fp = os.path.join(self.path, api_root, file_name)
 
-        if file_name in self.cache:
-            if self.cache[file_name]['modified'] == modified:
-                # Return objects from cache
-                return self.cache[file_name]['objects']
-            else:
-                u_objects = self.add_to_cache(path, file_name, modified)
+        u_objects = []
+
+        with open(fp, 'r') as raw_json:
+            try:
+                stix2 = json.load(raw_json)
+
+                if stix2.get('type', '') == 'bundle' and stix2.get('spec_version', '') == '2.0':
+                    objects = stix2.get('objects', [])
+                    u_objects = self.set_modified_time_stamp(objects, file_modified)
+
+                    if api_root not in self.cache:
+                        self.cache[api_root] = {'modified': '', 'files': {}}
+
+                    self.cache[api_root]['modified'] = api_root_modified
+                    self.cache[api_root]['files'][file_name] = {'modified': file_modified, 'objects': u_objects}
+            except Exception as e:
+                raise ProcessingError('error adding objects to cache', e)
+            finally:
                 return u_objects
+
+    def with_cache(self, api_root):
+        api_root_path = os.path.join(self.path, api_root)
+        api_root_modified = self.get_modified_time_stamp(api_root_path)
+
+        if api_root in self.cache:
+            if self.cache[api_root]['modified'] == api_root_modified:
+                # Return objects from cache
+                objects = []
+                for k, v in self.cache[api_root]['files'].items():
+                    objects.extend(v['objects'])
+                return objects
+            else:
+                # Cleanup the cache
+                self.delete_from_cache(api_root)
+
+                # Add to the cache and return objects for collection
+                dir_list = os.listdir(api_root_path)
+                files = [f for f in dir_list if os.path.isfile(os.path.join(api_root_path, f)) and f.endswith('.json')]
+
+                objects = []
+                for f in files:
+                    fp = os.path.join(api_root_path, f)
+                    file_modified = self.get_modified_time_stamp(fp)
+
+                    cached_files = self.cache[api_root]['files']
+                    if f in cached_files and cached_files[f]['modified'] == file_modified:
+                        objects.extend(cached_files[f]['objects'])
+                    else:
+                        u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
+                        objects.extend(u_objects)
+                return objects
         else:
-            u_objects = self.add_to_cache(path, file_name, modified)
-            return u_objects
+            # Update the cache and return the objects for the collection
+            dir_list = os.listdir(api_root_path)
+            files = [f for f in dir_list if os.path.isfile(os.path.join(api_root_path, f)) and f.endswith('.json')]
+
+            objects = []
+            for f in files:
+                fp = os.path.join(api_root_path, f)
+                file_modified = self.get_modified_time_stamp(fp)
+
+                u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
+                objects.extend(u_objects)
+            return objects
 
     def get_objects_without_bundle(self, api_root, collection_id, filter_args, allowed_filters):
         self.update_discovery_config()
@@ -200,7 +247,7 @@ class DirectoryBackend(Backend):
         if self.validate_requested_api_root(api_root):
             # Get the collection
             collection = None
-            collections = self.get_collections(api_root)
+            num_collections, collections = self.get_collections(api_root, 0, -1)
 
             for c in collections:
                 if 'id' in c and collection_id == c['id']:
@@ -210,23 +257,8 @@ class DirectoryBackend(Backend):
             if not collection:
                 raise ProcessingError("collection for api-root '{}' was not found".format(api_root))
 
-            p = os.path.join(self.path, api_root)
-
-            files = [f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) and f.endswith('.json')]
-
-            objects = []
-
-            for f in files:
-                fp = os.path.join(p, f)
-                fp_modified = os.path.getmtime(fp)
-                modified = format_datetime(datetime.datetime.utcfromtimestamp(fp_modified))
-
-                # Get the objects for the collection
-                f_objects = self.with_cache(p, f, modified)
-                objects.extend(f_objects)
-
             # Add the objects to the collection
-            collection['objects'] = objects
+            collection['objects'] = self.with_cache(api_root)
 
             # Filter the collection
             filtered_objects = []
@@ -245,10 +277,16 @@ class DirectoryBackend(Backend):
 
             return filtered_objects
 
-    def get_objects(self, api_root, collection_id, filter_args, allowed_filters):
+    def get_objects(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
+        # TODO: use start_index and end_index
+
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        return create_bundle(objects)
+        # objects = objects if end_index == -1 else objects[start_index:end_index]
+
+        count = len(objects)
+
+        return count, create_bundle(objects)
 
     def get_object(self, api_root, collection_id, object_id, filter_args, allowed_filters):
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
@@ -258,11 +296,13 @@ class DirectoryBackend(Backend):
         if len(req_object) == 1:
             return req_object[0]
 
-    def get_object_manifest(self, api_root, collection_id, filter_args, allowed_filters):
+    def get_object_manifest(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
+        # TODO: use start_index and end_index
+
         self.update_discovery_config()
 
         if self.validate_requested_api_root(api_root):
-            collections = self.get_collections(api_root)
+            collections = self.get_collections(api_root, 0, -1)
 
             for collection in collections:
                 if 'id' in collection and collection_id == collection['id']:
@@ -274,7 +314,11 @@ class DirectoryBackend(Backend):
                             allowed_filters,
                             None
                         )
-                    return manifest
+
+                    manifest = manifest if end_index == -1 else manifest[start_index:end_index]
+
+                    count = len(manifest)
+                    return count, manifest
 
     def add_objects(self, api_root, collection_id, objs, request_time):
         failed = 0
@@ -298,6 +342,9 @@ class DirectoryBackend(Backend):
 
                     succeeded += num_objs
                     successes = list(map(lambda x: x['id'], add_objs))
+
+                # Update the cache after the file is written
+                self.with_cache(api_root)
             except IOError:
                 failed += num_objs
                 failures = list(map(lambda x: x['id'], add_objs))
@@ -309,11 +356,6 @@ class DirectoryBackend(Backend):
                                  pending, successes_ids=successes, failures=failures)
 
         self.statuses.append(status)
-
-        # Update the cache after the file is written
-        fp_modified = os.path.getmtime(fp)
-        modified = format_datetime(datetime.datetime.utcfromtimestamp(fp_modified))
-        self.with_cache(p, file_name, modified)
 
         return status
 
