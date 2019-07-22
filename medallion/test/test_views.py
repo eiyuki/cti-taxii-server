@@ -1,4 +1,3 @@
-import base64
 import copy
 import json
 import sys
@@ -7,8 +6,10 @@ import uuid
 
 import six
 
-from medallion import (application_instance, register_blueprints,
-                       set_taxii_config, set_users_config, test, register_error_handlers)
+from medallion import (create_app, test)
+from medallion.test import config
+from medallion.test.base_test import TaxiiTest
+from medallion.test.data.initialize_mongodb import reset_db
 from medallion.views import MEDIA_TYPE_STIX_V20, MEDIA_TYPE_TAXII_V20
 
 if sys.version_info < (3, 3, 0):
@@ -25,46 +26,33 @@ BUNDLE = {
 }
 
 API_OBJECT = {
-                "created": "2017-01-27T13:49:53.935Z",
-                "id": "indicator--%s",
-                "labels": [
-                    "url-watchlist"
-                ],
-                "modified": "2017-01-27T13:49:53.935Z",
-                "name": "Malicious site hosting downloader",
-                "pattern": "[url:value = 'http://x4z9arb.cn/5000']",
-                "type": "indicator",
-                "valid_from": "2017-01-27T13:49:53.935382Z"
-            }
+    "created": "2017-01-27T13:49:53.935Z",
+    "id": "indicator--%s",
+    "labels": [
+        "url-watchlist"
+    ],
+    "modified": "2017-01-27T13:49:53.935Z",
+    "name": "Malicious site hosting downloader",
+    "pattern": "[url:value = 'http://x4z9arb.cn/5000']",
+    "type": "indicator",
+    "valid_from": "2017-01-27T13:49:53.935382Z"
+}
 
 
 class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
     def setUp(self):
-        self.app = application_instance
-        self.app_context = application_instance.app_context()
+        reset_db()
+        self.configuration = config.mongodb_config()
+        self.configuration['backend']['default_page_size'] = 20
+
+        self.app = create_app(self.configuration)
+
+        self.app_context = self.app.app_context()
         self.app_context.push()
-        self.app.testing = True
-        register_blueprints(self.app)
-        self.configuration = {
-            "backend": {
-                "module": "medallion.backends.mongodb_backend",
-                "module_class": "MongoBackend",
-                "uri": "mongodb://localhost:27017/",
-                "default_page_size": 20
-            },
-            "users": {
-                "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
-            },
-            "taxii": {
-                "max_page_size": 20
-            }
-        }
-        self.client = application_instance.test_client()
-        set_users_config(self.app, self.configuration["users"])
-        set_taxii_config(self.app, self.configuration["taxii"])
-        encoded_auth = 'Basic ' + base64.b64encode(b"admin:Password0").decode("ascii")
-        self.auth = {'Authorization': encoded_auth}
+
+        self.client = self.app.test_client()
+        self.auth = {'Authorization': 'Token abc123'}
 
     def tearDown(self):
         self.app_context.pop()
@@ -217,3 +205,21 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
         self.assertEqual(206, r.status_code)
         self.assertEqual(r.headers.get('Content-Range'), 'items 0-0/0')
+
+
+class TestAuth(TaxiiTest):
+    @classmethod
+    def setUpClass(cls):
+        cls.username, cls.password = "admin", "Password0"
+
+    def test_login(self):
+        with self.app.test_client() as client:
+            response = client.post(test.LOGIN, method='POST',
+                                   json={'username': self.username,
+                                         'password': self.password})
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('access_token', response.json)
+
+            response = client.get('/routes',
+                                  headers={'Authorization': 'JWT ' + response.json['access_token']})
+            self.assertEqual(response.status_code, 200)
