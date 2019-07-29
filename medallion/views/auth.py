@@ -15,7 +15,7 @@ def login():
         abort(400)
     username, password = auth_info['username'].encode('utf-8'), auth_info['password'].encode('utf-8')
 
-    password_hash = current_app.users_backend.get(username)
+    password_hash = current_app.auth_backend.get_password_hash(username)
 
     if not password_hash or not check_password_hash(password_hash, password):
         abort(401)

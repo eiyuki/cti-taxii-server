@@ -27,16 +27,30 @@ token_auth = HTTPTokenAuth(scheme='Token')
 auth = MultiAuth(None)
 
 
-def set_users_config(flask_application_instance, config):
+def set_multi_auth_config(auth_types):
+    type_to_app = {
+        'jwt': jwt_auth,
+        'api_key': token_auth,
+        'basic': basic_auth
+    }
+
+    auth_types = tuple(set(auth_types))
+    assert len(auth_types) > 0, 'at least one auth type required'
+
+    auth.main_auth = type_to_app[auth_types[0]]
+    auth.additional_auth = tuple(type_to_app[a] for a in auth_types[1:])
+
+
+def set_auth_config(flask_application_instance, config_info):
     with flask_application_instance.app_context():
         log.debug("Registering medallion users configuration into {}".format(current_app))
-        flask_application_instance.users_backend = config
+        flask_application_instance.auth_backend = connect_to_backend(config_info)
 
 
-def set_taxii_config(flask_application_instance, config):
+def set_taxii_config(flask_application_instance, config_info):
     with flask_application_instance.app_context():
         log.debug("Registering medallion taxii configuration into {}".format(current_app))
-        flask_application_instance.taxii_config = config
+        flask_application_instance.taxii_config = config_info
 
 
 def connect_to_backend(config_info):
@@ -147,39 +161,17 @@ def verify_token(token):
 
 @basic_auth.verify_password
 def verify_basic_auth(username, password):
-    password_hash = current_app.users_backend.get(username)
+    password_hash = current_app.auth_backend.get_password_hash(username)
     return False if password_hash is None else check_password_hash(password_hash, password)
 
 
 @token_auth.verify_token
 def api_key_auth(api_key):
-    user = current_app.api_key_backend.get(api_key)
+    user = current_app.auth_backend.get_username_for_api_key(api_key)
     if not user:
         return False
     g.user = user
     return True
-
-
-def set_api_key_config(app, config):
-    if len(config) == 0:
-        current_app.logger.warn("No api keys set.")
-    with app.app_context():
-        log.debug("Registering medallion api keys configuration into {}".format(current_app))
-        app.api_key_backend = config
-
-
-def set_auth_config(auth_types):
-    type_to_app = {
-        'jwt': jwt_auth,
-        'api_key': token_auth,
-        'basic': basic_auth
-    }
-
-    auth_types = tuple(set(auth_types))
-    assert len(auth_types) > 0, 'at least one auth type required'
-
-    auth.main_auth = type_to_app[auth_types[0]]
-    auth.additional_auth = tuple(type_to_app[a] for a in auth_types[1:])
 
 
 def create_app(cfg):
@@ -192,10 +184,9 @@ def create_app(cfg):
             configuration = json.load(f)
 
     app.config.from_mapping(**configuration)
-    set_auth_config(app.config['AUTH'])
+    set_multi_auth_config(configuration.get('multi-auth', ('basic',)))
 
-    set_users_config(app, configuration["users"])
-    set_api_key_config(app, configuration.get('api_keys', {}))
+    set_auth_config(app, configuration["auth"])
     set_taxii_config(app, configuration["taxii"])
     init_backend(app, configuration["backend"])
 

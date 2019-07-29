@@ -113,8 +113,6 @@ class DirectoryBackend(Backend):
                 return i
 
     def get_collections(self, api_root, start_index, end_index):
-        # TODO: use start_index and end_index
-
         self.update_discovery_config()
 
         api_roots = self.discovery_config['api_roots']
@@ -140,9 +138,9 @@ class DirectoryBackend(Backend):
 
                 collections.append(c)
 
-        collections = collections if end_index == -1 else collections[start_index:end_index]
-
         count = len(collections)
+
+        collections = collections if end_index == -1 else collections[start_index:end_index]
 
         return count, collections
 
@@ -278,13 +276,12 @@ class DirectoryBackend(Backend):
             return filtered_objects
 
     def get_objects(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
-        # TODO: use start_index and end_index
+        # print 'start_index: {}, end_index: {}'.format(start_index, end_index)
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
-
-        # objects = objects if end_index == -1 else objects[start_index:end_index]
-
         count = len(objects)
+
+        objects = objects if end_index == -1 else objects[start_index:end_index]
 
         return count, create_bundle(objects)
 
@@ -315,9 +312,10 @@ class DirectoryBackend(Backend):
                             None
                         )
 
+                    count = len(manifest)
+
                     manifest = manifest if end_index == -1 else manifest[start_index:end_index]
 
-                    count = len(manifest)
                     return count, manifest
 
     def add_objects(self, api_root, collection_id, objs, request_time):
