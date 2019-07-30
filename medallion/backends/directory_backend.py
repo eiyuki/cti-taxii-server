@@ -279,6 +279,7 @@ class DirectoryBackend(Backend):
         # print 'start_index: {}, end_index: {}'.format(start_index, end_index)
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
+        objects.sort(key=lambda x: datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'))
         count = len(objects)
 
         objects = objects if end_index == -1 else objects[start_index:end_index]
@@ -294,8 +295,6 @@ class DirectoryBackend(Backend):
             return req_object[0]
 
     def get_object_manifest(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
-        # TODO: use start_index and end_index
-
         self.update_discovery_config()
 
         if self.validate_requested_api_root(api_root):
