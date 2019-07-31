@@ -1,3 +1,5 @@
+import datetime
+import json
 import uuid
 import sys
 import six
@@ -29,12 +31,29 @@ def delete_api_key_for_user(client, api_key):
     pass
 
 
+def add_auth_data_from_file(client, data):
+    # Insert the new user.
+    db = client['auth']
+    users = db['users']
+
+    data['user']['created'] = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.utcnow())
+
+    users.insert_one(data['user'])
+
+    # Insert a constant api key
+    api_keys = db['api_keys']
+
+    data['api_key']['created'] = '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.utcnow())
+
+    api_keys.insert_one(data['api_key'])
+
+
 def add_api_key_for_user(client, email):
     api_key = str(uuid.uuid4()).replace('-', '')
     api_key_obj = {
         "_id": api_key,
         "user_id": email,
-        "created": "",
+        "created": '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.utcnow()),
         "last_used_at": "",
         "last_used_from": ""
     }
@@ -67,12 +86,18 @@ def backup_db():
 
 def main():
     uri = "mongodb://root:example@localhost:27017/"
-    if len(sys.argv) == 2:
+    if len(sys.argv) in [2, 3]:
         client = make_connection(uri)
 
         opt = sys.argv[1]
+        if opt == '-f':
+            fp = sys.argv[2]
 
-        if opt == '-u':
+            with open(fp, 'r') as i:
+                data = json.load(i)
+                add_auth_data_from_file(client, data)
+
+        elif opt == '-u':
             email = six.moves.input('email address      :').strip()
 
             password1 = six.moves.input('password           :').strip()
@@ -92,7 +117,7 @@ def main():
                 "password": password_hash,
                 "company_name": company_name,
                 "contact_name": contact_name,
-                "created": "",
+                "created": '{:%Y-%m-%dT%H:%M:%S}'.format(datetime.datetime.utcnow()),
                 "updated": ""
             }
 

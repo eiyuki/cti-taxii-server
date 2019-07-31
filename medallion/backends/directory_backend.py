@@ -26,44 +26,22 @@ class DirectoryBackend(Backend):
         if not self.path:
             raise ProcessingError('path was not specified in the config file')
 
-        dc = discovery_config
-
-        if dc.get('default', None):
-            if dc.get('api_roots', None):
-                if not dc['default'] in dc['api_roots']:
-                    raise ProcessingError("the default api root '{}' was not found in api_roots".format(dc['default']))
-            else:
-                raise ProcessingError('api_roots was not specified in the config file'.format(dc['default']))
-        else:
-            raise ProcessingError('discovery was not specified in the config file')
-
         if not os.path.isdir(self.path):
             raise ProcessingError("directory '{}' was not found".format(self.path))
 
-        collection_dirs = [f for f in os.listdir(self.path) if os.path.isdir(os.path.join(self.path, f))]
-        collection_dirs_len = len(collection_dirs)
-
-        if collection_dirs_len == 0:
-            raise ProcessingError("no directories were found in path '{}'".format(self.path))
-
-        # if collection_dirs_len != len(dc['api_roots']):
-        #     raise ProcessingError("the # of api_roots != the # of directories in path '{}'".format(self.path))
-
-        return dc
+        return discovery_config
 
     def update_discovery_config(self):
         dc = self.discovery_config
-        collection_dirs = [f for f in os.listdir(self.path) if os.path.isdir(os.path.join(self.path, f))]
+        collection_dirs = sorted([f for f in os.listdir(self.path) if os.path.isdir(os.path.join(self.path, f))])
 
-        # If there are new directories not in api_roots, add them in
-        host_port = dc['default'].rsplit('/', 2)[0]
+        if not collection_dirs:
+            raise ProcessingError('at least one api-root directory is required')
 
-        updated_roots = ['{}/{}/'.format(host_port, f) for f in collection_dirs]
+        updated_roots = ['{}{}/'.format(dc['host'], f) for f in collection_dirs]
 
-        if self.discovery_config['default'] in updated_roots:
-            self.discovery_config['api_roots'] = updated_roots
-        else:
-            raise ProcessingError("the default api root '{}' was not found in api_roots".format(dc['default']))
+        self.discovery_config['default'] = updated_roots[0]
+        self.discovery_config['api_roots'] = updated_roots
 
     # noinspection PyMethodMayBeStatic
     def init_api_root_config(self, api_root_config):
@@ -159,7 +137,8 @@ class DirectoryBackend(Backend):
 
     def get_modified_time_stamp(self, fp):
         fp_modified = os.path.getmtime(fp)
-        modified = format_datetime(datetime.datetime.utcfromtimestamp(fp_modified))
+        dt = datetime.datetime.utcfromtimestamp(fp_modified)
+        modified = '{:%Y-%m-%dT%H:%M:%S.%fZ}'.format(dt)
 
         return modified
 
@@ -279,7 +258,15 @@ class DirectoryBackend(Backend):
         # print 'start_index: {}, end_index: {}'.format(start_index, end_index)
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
+
+        for x in objects:
+            try:
+                datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            except ValueError as e:
+                print '{}'.format(json.dumps(x))
+
         objects.sort(key=lambda x: datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'))
+
         count = len(objects)
 
         objects = objects if end_index == -1 else objects[start_index:end_index]
