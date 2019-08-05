@@ -176,8 +176,15 @@ def api_key_auth(api_key):
     return True
 
 
+class TaxiiFlask(Flask):
+    def __init__(self, *args, **kwargs):
+        super(TaxiiFlask, self).__init__(*args, **kwargs)
+        self.auth_backend = None
+        self.taxii_config = None
+
+
 def create_app(cfg):
-    app = Flask(__name__)
+    app = TaxiiFlask(__name__)
 
     if isinstance(cfg, dict):
         configuration = cfg
