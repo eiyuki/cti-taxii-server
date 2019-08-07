@@ -5,8 +5,7 @@ import uuid
 
 from medallion.exceptions import ProcessingError
 from medallion.filters.basic_filter import BasicFilter
-from medallion.utils.common import (create_bundle, format_datetime, generate_status)
-
+from medallion.utils.common import (create_bundle, generate_status)
 from .base import Backend
 
 
