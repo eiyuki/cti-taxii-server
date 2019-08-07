@@ -96,7 +96,7 @@ def register_blueprints(app):
 
 def handle_error(error):
     error = {
-        "title": error.args[0],
+        "title": str(error),
         "http_status": "500"
     }
     return Response(response=flask.json.dumps(error),
