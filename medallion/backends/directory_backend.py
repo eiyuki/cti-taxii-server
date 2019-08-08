@@ -23,10 +23,10 @@ class DirectoryBackend(Backend):
     # noinspection PyMethodMayBeStatic
     def init_discovery_config(self, discovery_config):
         if not self.path:
-            raise ProcessingError('path was not specified in the config file')
+            raise ProcessingError('path was not specified in the config file', 400)
 
         if not os.path.isdir(self.path):
-            raise ProcessingError("directory '{}' was not found".format(self.path))
+            raise ProcessingError("directory '{}' was not found".format(self.path), 500)
 
         return discovery_config
 
@@ -35,7 +35,7 @@ class DirectoryBackend(Backend):
         collection_dirs = sorted([f for f in os.listdir(self.path) if os.path.isdir(os.path.join(self.path, f))])
 
         if not collection_dirs:
-            raise ProcessingError('at least one api-root directory is required')
+            raise ProcessingError('at least one api-root directory is required', 500)
 
         updated_roots = ['{}{}/'.format(dc['host'], f) for f in collection_dirs]
 
@@ -47,14 +47,14 @@ class DirectoryBackend(Backend):
         if api_root_config:
             return api_root_config
         else:
-            raise ProcessingError('api-root was not specified in the config file')
+            raise ProcessingError('api-root was not specified in the config file', 400)
 
     # noinspection PyMethodMayBeStatic
     def init_collection_config(self, collection_config):
         if collection_config:
             return collection_config
         else:
-            raise ProcessingError('collection was not specified in the config file')
+            raise ProcessingError('collection was not specified in the config file', 400)
 
     def validate_requested_api_root(self, requested_api_root):
         api_roots = self.discovery_config['api_roots']
@@ -168,7 +168,7 @@ class DirectoryBackend(Backend):
                     self.cache[api_root]['modified'] = api_root_modified
                     self.cache[api_root]['files'][file_name] = {'modified': file_modified, 'objects': u_objects}
             except Exception as e:
-                raise ProcessingError('error adding objects to cache', e)
+                raise ProcessingError('error adding objects to cache', 500, e)
             finally:
                 return u_objects
 
@@ -231,7 +231,7 @@ class DirectoryBackend(Backend):
                     break
 
             if not collection:
-                raise ProcessingError("collection for api-root '{}' was not found".format(api_root))
+                raise ProcessingError("collection for api-root '{}' was not found".format(api_root), 500)
 
             # Add the objects to the collection
             collection['objects'] = self.with_cache(api_root)
@@ -254,15 +254,9 @@ class DirectoryBackend(Backend):
             return filtered_objects
 
     def get_objects(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
-        print 'start_index: {}, end_index: {}'.format(start_index, end_index)
+        # print('start_index: {}, end_index: {}'.format(start_index, end_index))
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
-
-        for x in objects:
-            try:
-                datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            except ValueError as e:
-                print '{}'.format(json.dumps(x))
 
         objects.sort(key=lambda x: datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'))
 
@@ -275,7 +269,7 @@ class DirectoryBackend(Backend):
     def get_object(self, api_root, collection_id, object_id, filter_args, allowed_filters):
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        req_object = filter(lambda x: x['id'] == object_id, objects)
+        req_object = [i for i in objects if i['id'] == object_id]
 
         if len(req_object) == 1:
             return req_object[0]
@@ -333,7 +327,7 @@ class DirectoryBackend(Backend):
                 failures = list(map(lambda x: x['id'], add_objs))
 
         except Exception as e:
-            raise ProcessingError('error adding objects', e)
+            raise ProcessingError('error adding objects', 500, e)
 
         status = generate_status(request_time, 'complete', succeeded, failed,
                                  pending, successes_ids=successes, failures=failures)
