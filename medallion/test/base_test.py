@@ -15,17 +15,17 @@ class TaxiiTest(unittest.TestCase):
                 "created": "2017-01-27T13:49:53.935Z",
                 "id": "indicator--%s",
                 "labels": [
-                    "url-watchlist"
+                    "url-watchlist",
                 ],
                 "modified": "2017-01-27T13:49:53.935Z",
                 "name": "Malicious site hosting downloader",
                 "pattern": "[url:value = 'http://x4z9arb.cn/5000']",
                 "type": "indicator",
-                "valid_from": "2017-01-27T13:49:53.935382Z"
-            }
+                "valid_from": "2017-01-27T13:49:53.935382Z",
+            },
         ],
         "spec_version": "2.0",
-        "type": "bundle"
+        "type": "bundle",
     }
 
     DATA_FILE = os.path.join(

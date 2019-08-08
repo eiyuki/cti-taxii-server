@@ -53,7 +53,7 @@ Medallion provides a command-line interface to start the TAXII Server::
                   [--log-level {DEBUG,INFO,WARN,ERROR,CRITICAL}]
                   CONFIG_PATH
 
-    medallion v0.3.1
+    medallion v0.4.0
 
     positional arguments:
       CONFIG_PATH           The location of the JSON configuration file to use.
@@ -218,6 +218,8 @@ Current Maintainers of this TC Open Repository
 -  `Emmanuelle Vargas-Gonzalez <mailto:emmanuelle@mitre.org>`__; GitHub ID:
    https://github.com/emmanvg/; WWW: `MITRE
    Corporation <https://www.mitre.org/>`__
+-  `Jason Keirstead <mailto:Jason.Keirstead@ca.ibm.com>`__; GitHub ID:
+   https://github.com/JasonKeirstead; WWW: `IBM <http://www.ibm.com/>`__
 
 
 About OASIS TC Open Repositories

@@ -22,20 +22,20 @@ BUNDLE = {
     "objects": [
     ],
     "spec_version": "2.0",
-    "type": "bundle"
+    "type": "bundle",
 }
 
 API_OBJECT = {
     "created": "2017-01-27T13:49:53.935Z",
     "id": "indicator--%s",
     "labels": [
-        "url-watchlist"
+        "url-watchlist",
     ],
     "modified": "2017-01-27T13:49:53.935Z",
     "name": "Malicious site hosting downloader",
     "pattern": "[url:value = 'http://x4z9arb.cn/5000']",
     "type": "indicator",
-    "valid_from": "2017-01-27T13:49:53.935382Z"
+    "valid_from": "2017-01-27T13:49:53.935382Z",
 }
 
 
@@ -66,8 +66,8 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
     @mock.patch('medallion.backends.base.Backend')
     def test_responses_include_range_headers(self, mock_backend):
-        ''' This test confirms that the expected endpoints are returning the Accept-Ranges
-        HTTP header as per section 3.4 of the specification '''
+        """ This test confirms that the expected endpoints are returning the Accept-Ranges
+        HTTP header as per section 3.4 of the specification """
 
         self.app.medallion_backend = mock_backend()
 
@@ -82,8 +82,10 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
         # ------------- END: test collection endpoint ------------- #
         # ------------- BEGIN: test manifests endpoint ------------- #
         mock_backend.return_value.get_object_manifest.return_value = (10, {'objects': []})
-        r = self.client.get(test.MANIFESTS_EP,
-                            headers=self.auth)
+        r = self.client.get(
+            test.MANIFESTS_EP,
+            headers=self.auth,
+        )
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content_type, MEDIA_TYPE_TAXII_V20)
@@ -92,8 +94,10 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
         # ------------- END: test manifests endpoint ------------- #
         # ------------- BEGIN: test objects endpoint ------------- #
         mock_backend.return_value.get_objects.return_value = (10, {'objects': []})
-        r = self.client.get(test.GET_OBJECTS_EP,
-                            headers=self.auth)
+        r = self.client.get(
+            test.GET_OBJECTS_EP,
+            headers=self.auth,
+        )
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.content_type, MEDIA_TYPE_STIX_V20)
@@ -103,9 +107,9 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
     @mock.patch('medallion.backends.base.Backend')
     def test_response_status_headers_for_large_responses(self, mock_backend):
-        ''' This test confirms that the expected endpoints are returning the Accept-Ranges and
+        """ This test confirms that the expected endpoints are returning the Accept-Ranges and
         Content-Range headers as well as a HTTP 206 for large responses. Refer section 3.4.3
-        of the specification '''
+        of the specification """
 
         self.app.medallion_backend = mock_backend()
         page_size = self.configuration['backend']['default_page_size']
@@ -151,8 +155,8 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
     @mock.patch('medallion.backends.base.Backend')
     def test_bad_range_request(self, mock_backend):
-        ''' This test should return a HTTP 416 for a range request that cannot be satisfied. Refer 3.4.2 in
-        the TAXII specification. '''
+        """ This test should return a HTTP 416 for a range request that cannot be satisfied. Refer 3.4.2 in
+        the TAXII specification. """
 
         self.app.medallion_backend = mock_backend()
 
@@ -162,7 +166,7 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
         headers = {
             'Authorization': self.auth['Authorization'],
-            'Range': 'items 100-199'
+            'Range': 'items 100-199',
         }
         r = self.client.get(test.GET_OBJECT_EP, headers=headers)
 
@@ -171,8 +175,8 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
     @mock.patch('medallion.backends.base.Backend')
     def test_invalid_range_request(self, mock_backend):
-        ''' This test should return a HTTP 400 with a message that the request contains a malformed
-        range request header. '''
+        """ This test should return a HTTP 400 with a message that the request contains a malformed
+        range request header. """
 
         self.app.medallion_backend = mock_backend()
 
@@ -182,7 +186,7 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
         headers = {
             'Authorization': self.auth['Authorization'],
-            'Range': 'items x-199'
+            'Range': 'items x-199',
         }
         r = self.client.get(test.GET_OBJECT_EP, headers=headers)
 
@@ -190,8 +194,8 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
     @mock.patch('medallion.backends.base.Backend')
     def test_content_range_header_empty_response(self, mock_backend):
-        ''' This test checks that the Content-Range header is correctly formed for queries that return
-        an empty (zero record) response. '''
+        """ This test checks that the Content-Range header is correctly formed for queries that return
+        an empty (zero record) response. """
         self.app.medallion_backend = mock_backend()
 
         # Set up the backend to return the total number of results = 0.
@@ -199,7 +203,7 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
         headers = {
             'Authorization': self.auth['Authorization'],
-            'Range': 'items 0-10'
+            'Range': 'items 0-10',
         }
         r = self.client.get(test.GET_OBJECT_EP, headers=headers)
 
