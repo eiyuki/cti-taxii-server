@@ -254,7 +254,7 @@ class DirectoryBackend(Backend):
             return filtered_objects
 
     def get_objects(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
-        # print 'start_index: {}, end_index: {}'.format(start_index, end_index)
+        print 'start_index: {}, end_index: {}'.format(start_index, end_index)
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
@@ -284,7 +284,7 @@ class DirectoryBackend(Backend):
         self.update_discovery_config()
 
         if self.validate_requested_api_root(api_root):
-            collections = self.get_collections(api_root, 0, -1)
+            count, collections = self.get_collections(api_root, 0, -1)
 
             for collection in collections:
                 if 'id' in collection and collection_id == collection['id']:

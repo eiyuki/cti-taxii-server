@@ -22,21 +22,21 @@ def _get_argparser():
     desc = "medallion v{0}".format(__version__)
     parser = argparse.ArgumentParser(
         description=desc,
-        formatter_class=NewlinesHelpFormatter
+        formatter_class=NewlinesHelpFormatter,
     )
 
     parser.add_argument(
         "--host",
         default="127.0.0.1",
         type=str,
-        help="The host to listen on."
+        help="The host to listen on.",
     )
 
     parser.add_argument(
         "--port",
         default=5000,
         type=int,
-        help="The port of the web server."
+        help="The port of the web server.",
     )
 
     parser.add_argument(
@@ -51,14 +51,14 @@ def _get_argparser():
         default="WARN",
         type=str,
         help="The logging output level for medallion.",
-        choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
     )
 
     parser.add_argument(
         "CONFIG_PATH",
         metavar="CONFIG_PATH",
         type=str,
-        help="The location of the JSON configuration file to use."
+        help="The location of the JSON configuration file to use.",
     )
 
     return parser

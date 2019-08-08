@@ -9,9 +9,9 @@ from flask import Flask, Response, current_app, g
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
 from werkzeug.security import check_password_hash
 
-from medallion.exceptions import BackendError, ProcessingError
-from medallion.version import __version__  # noqa
-from medallion.views import MEDIA_TYPE_TAXII_V20
+from .exceptions import BackendError, ProcessingError
+from .version import __version__  # noqa
+from .views import MEDIA_TYPE_TAXII_V20
 
 # Console Handler for medallion messages
 ch = logging.StreamHandler()
@@ -95,35 +95,43 @@ def register_blueprints(app):
 
 
 def handle_error(error):
-    error = {
-        "title": str(error),
-        "http_status": "500"
+    e = {
+        "title": "InternalError",
+        "http_status": "500",
+        "description": str(error),
     }
-    return Response(response=flask.json.dumps(error),
-                    status=500,
-                    mimetype=MEDIA_TYPE_TAXII_V20)
+    return Response(
+        response=json.dumps(e),
+        status=500,
+        mimetype=MEDIA_TYPE_TAXII_V20,
+    )
 
 
 def handle_processing_error(error):
     e = {
-        "title": "ProcessingError",
-        "http_status": "422",
-        "description": str(error)
+        "title": str(error.__class__.__name__),
+        "http_status": str(error.status),
+        "description": str(error),
     }
-    return Response(response=flask.json.dumps(e),
-                    status=422,
-                    mimetype=MEDIA_TYPE_TAXII_V20)
+    return Response(
+        response=json.dumps(e),
+        status=error.status,
+        headers=getattr(error, "headers", None),
+        mimetype=MEDIA_TYPE_TAXII_V20,
+    )
 
 
 def handle_backend_error(error):
     e = {
-        "title": "MongoBackendError",
-        "http_status": "500",
-        "description": str(error)
+        "title": str(error.__class__.__name__),
+        "http_status": str(error.status),
+        "description": str(error),
     }
-    return Response(response=flask.json.dumps(e),
-                    status=500,
-                    mimetype=MEDIA_TYPE_TAXII_V20)
+    return Response(
+        response=json.dumps(e),
+        status=error.status,
+        mimetype=MEDIA_TYPE_TAXII_V20,
+    )
 
 
 def register_error_handlers(app):
