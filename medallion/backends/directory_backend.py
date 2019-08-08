@@ -269,7 +269,7 @@ class DirectoryBackend(Backend):
     def get_object(self, api_root, collection_id, object_id, filter_args, allowed_filters):
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        req_object = [i for i in filter(lambda x: x['id'] == object_id, objects)]
+        req_object = [i for i in objects if i['id'] == object_id]
 
         if len(req_object) == 1:
             return req_object[0]
