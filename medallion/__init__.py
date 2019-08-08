@@ -200,7 +200,7 @@ def create_app(cfg):
         with open(cfg, "r") as f:
             configuration = json.load(f)
 
-    app.config.from_mapping(**configuration)
+    app.config.from_mapping(**configuration['flask'])
     set_multi_auth_config(configuration.get('multi-auth', ('basic',)))
 
     set_auth_config(app, configuration["auth"])
