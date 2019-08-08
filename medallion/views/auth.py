@@ -13,7 +13,7 @@ def login():
     auth_info = request.json
     if not auth_info:
         abort(400)
-    username, password = auth_info['username'].encode('utf-8'), auth_info['password'].encode('utf-8')
+    username, password = auth_info['username'], auth_info['password']
 
     password_hash = current_app.auth_backend.get_password_hash(username)
 
