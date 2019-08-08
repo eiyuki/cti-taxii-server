@@ -258,12 +258,6 @@ class DirectoryBackend(Backend):
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        # for x in objects:
-        #     try:
-        #         datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ')
-        #     except ValueError as e:
-        #         print('{}'.format(json.dumps(x)))
-
         objects.sort(key=lambda x: datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'))
 
         count = len(objects)
@@ -275,7 +269,7 @@ class DirectoryBackend(Backend):
     def get_object(self, api_root, collection_id, object_id, filter_args, allowed_filters):
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        req_object = filter(lambda x: x['id'] == object_id, objects)
+        req_object = [i for i in filter(lambda x: x['id'] == object_id, objects)]
 
         if len(req_object) == 1:
             return req_object[0]
