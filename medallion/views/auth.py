@@ -20,7 +20,7 @@ def login():
     if not password_hash or not check_password_hash(password_hash, password):
         abort(401)
 
-    return jsonify({'access_token': jwt_encode(username)})
+    return jsonify({'access_token': jwt_encode(username).decode('utf-8')})
 
 
 @auth_bp.route('/routes', methods=['GET'])
