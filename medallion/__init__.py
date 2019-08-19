@@ -176,6 +176,7 @@ def verify_basic_auth(username, password):
     g.user = username
     return False if password_hash is None else check_password_hash(password_hash, password)
 
+
 @token_auth.verify_token
 def api_key_auth(api_key):
     user = current_app.auth_backend.get_username_for_api_key(api_key)
@@ -192,6 +193,11 @@ class TaxiiFlask(Flask):
         self.taxii_config = None
 
 
+def log_after_request(response):
+    current_app.logger.info('-')
+    return response
+
+
 def create_app(cfg):
     app = TaxiiFlask(__name__)
 
@@ -202,6 +208,7 @@ def create_app(cfg):
             configuration = json.load(f)
 
     default_handler.setFormatter(default_request_formatter())
+    _ = app.after_request(log_after_request)
 
     app.config.from_mapping(**configuration['flask'])
 

@@ -16,11 +16,13 @@ class RequestFormatter(logging.Formatter):
                 source.append(request.remote_addr)
 
             record.source = ",".join(source)
+            record.user = getattr(g, 'user', '-')
         else:
+            record.user = '-'
+            record.source = '-'
             record.method = '-'
             record.path = '-'
 
-        record.user = getattr(g, 'user', '-')
         return super(RequestFormatter, self).format(record)
 
 
