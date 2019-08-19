@@ -2,12 +2,12 @@
 import json
 import logging
 
-from flask import g, request
+from flask import g, has_request_context, request
 
 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
-        if request:
+        if has_request_context():
             record.method = request.method
             record.path = request.full_path.rstrip('?')
 

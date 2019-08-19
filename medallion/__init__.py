@@ -173,11 +173,8 @@ def verify_token(token):
 @basic_auth.verify_password
 def verify_basic_auth(username, password):
     password_hash = current_app.auth_backend.get_password_hash(username)
-    if False if password_hash is None else check_password_hash(password_hash, password):
-        g.user = username
-        return True
-    return False
-
+    g.user = username
+    return False if password_hash is None else check_password_hash(password_hash, password)
 
 @token_auth.verify_token
 def api_key_auth(api_key):
