@@ -2,20 +2,21 @@ import importlib
 import json
 import logging
 
-import flask
 import jwt
 from datetime import datetime, timedelta
 from flask import Flask, Response, current_app, g
+from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
 from werkzeug.security import check_password_hash
 
+from medallion.log import default_request_formatter
 from .exceptions import BackendError, ProcessingError
 from .version import __version__  # noqa
 from .views import MEDIA_TYPE_TAXII_V20
 
 # Console Handler for medallion messages
 ch = logging.StreamHandler()
-ch.setFormatter(logging.Formatter("[%(name)s] [%(levelname)-8s] [%(asctime)s] %(message)s"))
+ch.setFormatter(logging.Formatter("%(name)s %(levelname)-8s %(asctime)s - - - - %(message)s"))
 
 # Module-level logger
 log = logging.getLogger(__name__)
@@ -172,7 +173,10 @@ def verify_token(token):
 @basic_auth.verify_password
 def verify_basic_auth(username, password):
     password_hash = current_app.auth_backend.get_password_hash(username)
-    return False if password_hash is None else check_password_hash(password_hash, password)
+    if False if password_hash is None else check_password_hash(password_hash, password):
+        g.user = username
+        return True
+    return False
 
 
 @token_auth.verify_token
@@ -200,7 +204,10 @@ def create_app(cfg):
         with open(cfg, "r") as f:
             configuration = json.load(f)
 
+    default_handler.setFormatter(default_request_formatter())
+
     app.config.from_mapping(**configuration['flask'])
+
     set_multi_auth_config(configuration.get('multi-auth', ('basic',)))
 
     set_auth_config(app, configuration["auth"])
