@@ -208,6 +208,7 @@ def create_app(cfg):
             configuration = json.load(f)
 
     default_handler.setFormatter(default_request_formatter())
+    default_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
     _ = app.after_request(log_after_request)
 
     app.config.from_mapping(**configuration['flask'])
