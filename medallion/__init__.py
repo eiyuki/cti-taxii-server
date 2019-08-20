@@ -16,7 +16,7 @@ from .views import MEDIA_TYPE_TAXII_V20
 
 # Console Handler for medallion messages
 ch = logging.StreamHandler()
-ch.setFormatter(logging.Formatter("%(name)s %(levelname)-8s %(asctime)s - - - - %(message)s"))
+ch.setFormatter(default_request_formatter())
 
 # Module-level logger
 log = logging.getLogger(__name__)
@@ -194,7 +194,7 @@ class TaxiiFlask(Flask):
 
 
 def log_after_request(response):
-    current_app.logger.info('-')
+    current_app.logger.info(response.status)
     return response
 
 
@@ -207,11 +207,19 @@ def create_app(cfg):
         with open(cfg, "r") as f:
             configuration = json.load(f)
 
-    default_handler.setFormatter(default_request_formatter())
-    default_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
-    _ = app.after_request(log_after_request)
-
     app.config.from_mapping(**configuration['flask'])
+
+    app.logger = logging.getLogger('medallion-app')
+    app.logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setFormatter(default_request_formatter())
+    app.logger.addHandler(handler)
+
+    if not app.debug:
+        # Shut up the werkzeug logger unless debugging.
+        logging.getLogger('werkzeug').setLevel(logging.CRITICAL)
+
+    _ = app.after_request(log_after_request)
 
     set_multi_auth_config(configuration.get('multi-auth', ('basic',)))
 
