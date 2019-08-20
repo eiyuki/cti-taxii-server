@@ -1,7 +1,7 @@
 import logging
 
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure
 
 from medallion.backends.auth_base import AuthBackend
 
@@ -10,10 +10,10 @@ log = logging.getLogger(__name__)
 
 
 class AuthMongodbBackend(AuthBackend):
-    def __init__(self, uri, db_name, **kwargs):
+    def __init__(self, uri, **kwargs):
         try:
             self.client = MongoClient(uri)
-            self.db_name = db_name
+            self.db_name = kwargs["db_name"]
             # The ismaster command is cheap and does not require auth.
             # self.client.admin.command("ismaster")
         except ConnectionFailure:

@@ -4,10 +4,10 @@ import uuid
 import sys
 import six
 
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure
 
 
 def make_connection(uri):
@@ -21,11 +21,13 @@ def make_connection(uri):
         print("Unable to establish a connection to MongoDB server {}".format(uri))
 
 
+# noinspection PyUnusedLocal
 def delete_user(client, email):
     # TODO: delete user's api keys, delete user
     pass
 
 
+# noinspection PyUnusedLocal
 def delete_api_key_for_user(client, api_key):
     # TODO: delete api key
     pass

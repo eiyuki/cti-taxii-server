@@ -212,6 +212,8 @@ class TestTAXIIServerWithMockBackend(unittest.TestCase):
 
 
 class TestAuth(TaxiiTest):
+    type = "memory"
+
     @classmethod
     def setUpClass(cls):
         cls.username, cls.password = "admin", "Password0"
