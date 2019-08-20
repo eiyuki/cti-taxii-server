@@ -6,7 +6,7 @@ import uuid
 
 import six
 
-from medallion import test, init_backend
+from medallion import init_backend, test
 from medallion.utils import common
 from medallion.views import MEDIA_TYPE_STIX_V20, MEDIA_TYPE_TAXII_V20
 

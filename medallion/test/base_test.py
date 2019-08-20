@@ -1,4 +1,3 @@
-import base64
 import os
 import unittest
 
@@ -8,6 +7,9 @@ from medallion.test.data.initialize_mongodb import reset_db
 
 
 class TaxiiTest(unittest.TestCase):
+    type = None
+    DATA_FILE = os.path.join(
+        os.path.dirname(__file__), "data", "default_data.json")
     API_OBJECTS_2 = {
         "id": "bundle--8fab937e-b694-11e3-b71c-0800271e87d2",
         "objects": [
@@ -28,21 +30,20 @@ class TaxiiTest(unittest.TestCase):
         "type": "bundle",
     }
 
-    DATA_FILE = os.path.join(
-        os.path.dirname(__file__), "data", "default_data.json")
     memory_config = test_configs.memory_config(DATA_FILE)
     mongodb_config = test_configs.mongodb_config()
 
     def setUp(self):
-        if getattr(self, 'type', None) == "mongo":
+        if self.type == "mongo":
             reset_db()
             self.configuration = self.mongodb_config
-        else:
+        elif self.type == "memory":
             self.memory_config['backend']['filename'] = self.DATA_FILE
             self.configuration = self.memory_config
+        else:
+            raise RuntimeError("Unknown backend!")
 
         self.app = create_app(self.configuration)
-
         self.app_context = self.app.app_context()
         self.app_context.push()
 
