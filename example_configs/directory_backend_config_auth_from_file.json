@@ -47,5 +47,6 @@
   "multi-auth": [
     "basic",
     "api_key"
-  ]
+  ],
+  "flask": {}
 }

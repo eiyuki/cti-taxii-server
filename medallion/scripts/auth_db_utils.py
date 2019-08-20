@@ -18,7 +18,7 @@ def make_connection(uri):
 
         return client
     except ConnectionFailure:
-        print "Unable to establish a connection to MongoDB server {}".format(uri)
+        print("Unable to establish a connection to MongoDB server {}".format(uri))
 
 
 def delete_user(client, email):
@@ -68,9 +68,9 @@ def add_api_key_for_user(client, email):
         api_keys = db['api_keys']
         api_keys.insert_one(api_key_obj)
 
-        print 'new api key: {} added for email: {}'.format(api_key, email)
+        print("new api key: {} added for email: {}".format(api_key, email))
     else:
-        print 'no user with email: {} was found in the database.'.format(email)
+        print("no user with email: {} was found in the database.".format(email))
 
 
 def add_user(client, user):
@@ -139,9 +139,9 @@ def main():
 
             delete_api_key_for_user(client, api_key)
         else:
-            print "usage: '-u' (add user), '-k' (add api key), '-du' (delete user), '-dk' (delete api key)"
+            print("usage: '-u' (add user), '-k' (add api key), '-du' (delete user), '-dk' (delete api key)")
     else:
-        print "usage: '-u' (add user), '-k' (add api key), '-du' (delete user), '-dk' (delete api key)"
+        print("usage: '-u' (add user), '-k' (add api key), '-du' (delete user), '-dk' (delete api key)")
 
 
 if __name__ == "__main__":
