@@ -11,6 +11,7 @@ class RequestFormatter(logging.Formatter):
             record.method = request.method
             record.path = request.full_path.rstrip('?')
             record.server_protocol = request.environ.get('SERVER_PROTOCOL')
+
             source = request.headers.getlist('X-Forwarded-For')
             if request.remote_addr not in source:
                 source.append(request.remote_addr)
@@ -18,6 +19,7 @@ class RequestFormatter(logging.Formatter):
             record.source = ",".join(source)
             record.user = getattr(g, 'user', '-')
         else:
+            record.server_protocol = '-'
             record.user = '-'
             record.source = '-'
             record.method = '-'
@@ -28,7 +30,7 @@ class RequestFormatter(logging.Formatter):
 
 def default_request_formatter():
     return RequestFormatter(
-        '%(name)s %(levelname)-8s %(asctime)s '
+        '%(name)-13s %(levelname)-8s %(asctime)s '
         '%(server_protocol)s %(method)s %(source)s %(user)s %(path)s %(message)s'
     )
 
