@@ -39,6 +39,52 @@ def memory_config(data_file):
     })
 
 
+def directory_config():
+    return _base_config({
+        "module": "medallion.backends.directory_backend",
+        "module_class": "DirectoryBackend",
+        "path": "./test/directory/",
+        "discovery": {
+            "title": "Indicators from the directory backend",
+            "description": "Indicators from the directory backend",
+            "contact": "",
+            "host": "http://localhost:5000/"
+        },
+        "api-root": {
+            "title": "",
+            "description": "",
+            "versions": [
+                "taxii-2.0"
+            ],
+            "max-content-length": 9765625
+        },
+        "collection": {
+            "id": "",
+            "title": "",
+            "description": "",
+            "can_read": True,
+            "can_write": False,
+            "media_types": [
+                "application/vnd.oasis.stix+json; version=2.0"
+            ]
+        }
+    }, {
+        "module": "medallion.backends.auth_memory_backend",
+        "module_class": "AuthMemoryBackend",
+        "users": {
+            # "admin": "pbkdf2:sha256:150000$vhWiAWXq$a16882c2eaf4dbb5c55566c93ec256c189ebce855b0081f4903f09a23e8b2344",
+            "user1": "pbkdf2:sha256:150000$TVpGAgEI$dd391524abb0d9107ff5949ef512c150523c388cfa6490d8556d604f90de329e",
+            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3",
+            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
+        },
+        "api_keys": {
+            "123456": "admin",
+            "abc123": "admin",
+            "abcdef": "user1"
+        }
+    })
+
+
 def mongodb_config():
     return _base_config({
         "module": "medallion.backends.mongodb_backend",

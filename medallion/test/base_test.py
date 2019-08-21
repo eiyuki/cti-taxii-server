@@ -31,6 +31,7 @@ class TaxiiTest(unittest.TestCase):
     }
 
     memory_config = test_configs.memory_config(DATA_FILE)
+    directory_config = test_configs.directory_config()
     mongodb_config = test_configs.mongodb_config()
 
     def setUp(self):
@@ -40,6 +41,8 @@ class TaxiiTest(unittest.TestCase):
         elif self.type == "memory":
             self.memory_config['backend']['filename'] = self.DATA_FILE
             self.configuration = self.memory_config
+        elif self.type == "directory":
+            self.configuration = self.directory_config
         else:
             raise RuntimeError("Unknown backend!")
 
