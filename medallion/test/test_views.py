@@ -3,6 +3,7 @@ import json
 import sys
 import unittest
 import uuid
+from base64 import b64encode
 
 import six
 
@@ -229,3 +230,21 @@ class TestAuth(TaxiiTest):
             response = client.get('/routes',
                                   headers={'Authorization': 'JWT ' + response.json['access_token']})
             self.assertEqual(response.status_code, 200)
+
+    def test_api_key_auth(self):
+        with self.app.test_client() as client:
+            response = client.get("/routes",
+                                  headers={'Authorization': 'Basic ' + b64encode("user:invalid")})
+            self.assertEqual(response.headers.get('WWW-Authenticate'),
+                             'Basic realm="Authentication Required"')
+
+    def test_basic_auth(self):
+        with self.app.test_client() as client:
+            response = client.get("/routes",
+                                  headers={'Authorization': 'Token xxxxxxx'})
+            self.assertEqual(response.headers.get('WWW-Authenticate'),
+                             'Token realm="Authentication Required"')
+
+
+if __name__ == "__main__":
+    unittest.main()
