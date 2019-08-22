@@ -32,9 +32,10 @@ class RequestFormatter(logging.Formatter):
 
 def default_request_formatter():
     return RequestFormatter(
-        '%(name)-13s %(levelname)-8s %(asctime)s '
-        '%(server_protocol)s %(method)s %(source)s %(trace_id)s '
-        '%(user)s %(path)s %(message)s'
+        '%(asctime)s %(levelname)s [%(name)s] %(trace_id)s'
+        ' %(source)s %(user)s'
+        ' "%(method)s %(path)s %(server_protocol)s"'
+        ' %(message)s'
     )
 
 
