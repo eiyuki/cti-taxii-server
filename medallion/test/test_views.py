@@ -219,6 +219,11 @@ class TestAuth(TaxiiTest):
     def setUpClass(cls):
         cls.username, cls.password = "admin", "Password0"
 
+    def test_auth_failure(self):
+        with self.app.test_client() as client:
+            response = client.get('/routes')
+            self.assertEqual(response.status_code, 401)
+
     def test_login(self):
         with self.app.test_client() as client:
             response = client.post(test.LOGIN, method='POST',
