@@ -18,12 +18,14 @@ class RequestFormatter(logging.Formatter):
 
             record.source = ",".join(source)
             record.user = getattr(g, 'user', '-')
+            record.trace_id = getattr(g, 'trace_id', '-')
         else:
-            record.server_protocol = '-'
-            record.user = '-'
-            record.source = '-'
             record.method = '-'
             record.path = '-'
+            record.server_protocol = '-'
+            record.source = '-'
+            record.user = '-'
+            record.trace_id = '-'
 
         return super(RequestFormatter, self).format(record)
 
@@ -31,7 +33,8 @@ class RequestFormatter(logging.Formatter):
 def default_request_formatter():
     return RequestFormatter(
         '%(name)-13s %(levelname)-8s %(asctime)s '
-        '%(server_protocol)s %(method)s %(source)s %(user)s %(path)s %(message)s'
+        '%(server_protocol)s %(method)s %(source)s %(trace_id)s '
+        '%(user)s %(path)s %(message)s'
     )
 
 
@@ -46,7 +49,8 @@ def json_request_formatter():
             "user": "%(user)s",
             "path": "%(path)s",
             "server_protocol": "%(server_protocol)s",
-            "message": "%(message)s"
+            "message": "%(message)s",
+            "trace_id": "%(trace_id)s"
         })
     )
 

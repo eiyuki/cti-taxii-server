@@ -1,11 +1,11 @@
 import importlib
 import json
 import logging
+import random
 
 import jwt
 from datetime import datetime, timedelta
 from flask import Flask, Response, current_app, g
-from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
 from werkzeug.security import check_password_hash
 
@@ -186,16 +186,20 @@ def api_key_auth(api_key):
     return True
 
 
-class TaxiiFlask(Flask):
-    def __init__(self, *args, **kwargs):
-        super(TaxiiFlask, self).__init__(*args, **kwargs)
-        self.auth_backend = None
-        self.taxii_config = None
+def set_trace_id():
+    g.trace_id = "{:08x}".format(random.randrange(0, 0x100000000))
 
 
 def log_after_request(response):
     current_app.logger.info(response.status)
     return response
+
+
+class TaxiiFlask(Flask):
+    def __init__(self, *args, **kwargs):
+        super(TaxiiFlask, self).__init__(*args, **kwargs)
+        self.auth_backend = None
+        self.taxii_config = None
 
 
 def create_app(cfg):
@@ -219,6 +223,7 @@ def create_app(cfg):
         # Shut up the werkzeug logger unless debugging.
         logging.getLogger('werkzeug').setLevel(logging.CRITICAL)
 
+    _ = app.before_request(set_trace_id)
     _ = app.after_request(log_after_request)
 
     set_multi_auth_config(configuration.get('multi-auth', ('basic',)))
