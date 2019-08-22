@@ -38,7 +38,7 @@ def set_multi_auth_config(main_auth, *additional_auth):
 
     auth.main_auth = type_to_app[main_auth]
     additional_auth = [a for a in additional_auth if a != main_auth]
-    auth.additional_auth = (type_to_app[a] for a in tuple(OrderedDict.fromkeys(additional_auth)))
+    auth.additional_auth = tuple(type_to_app[a] for a in tuple(OrderedDict.fromkeys(additional_auth)))
 
 
 def set_auth_config(flask_application_instance, config_info):
