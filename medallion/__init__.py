@@ -2,6 +2,7 @@ import importlib
 import json
 import logging
 import random
+from collections import OrderedDict
 
 import jwt
 from datetime import datetime, timedelta
@@ -28,18 +29,15 @@ token_auth = HTTPTokenAuth(scheme='Token')
 auth = MultiAuth(None)
 
 
-def set_multi_auth_config(auth_types):
+def set_multi_auth_config(main_auth, *additional_auth):
     type_to_app = {
         'jwt': jwt_auth,
         'api_key': token_auth,
         'basic': basic_auth
     }
 
-    auth_types = tuple(set(auth_types))
-    assert len(auth_types) > 0, 'at least one auth type required'
-
-    auth.main_auth = type_to_app[auth_types[0]]
-    auth.additional_auth = tuple(type_to_app[a] for a in auth_types[1:])
+    auth.main_auth = type_to_app[main_auth]
+    auth.additional_auth = tuple(OrderedDict.fromkeys(additional_auth))
 
 
 def set_auth_config(flask_application_instance, config_info):
@@ -226,7 +224,7 @@ def create_app(cfg):
     _ = app.before_request(set_trace_id)
     _ = app.after_request(log_after_request)
 
-    set_multi_auth_config(configuration.get('multi-auth', ('basic',)))
+    set_multi_auth_config(*configuration.get('multi-auth', ('basic',)))
 
     set_auth_config(app, configuration["auth"])
     set_taxii_config(app, configuration["taxii"])
