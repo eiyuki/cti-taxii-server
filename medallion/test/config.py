@@ -63,7 +63,7 @@ def directory_config():
             "title": "",
             "description": "",
             "can_read": True,
-            "can_write": False,
+            "can_write": True,
             "media_types": [
                 "application/vnd.oasis.stix+json; version=2.0"
             ]
