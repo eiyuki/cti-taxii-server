@@ -231,14 +231,21 @@ class TestAuth(TaxiiTest):
                                   headers={'Authorization': 'JWT ' + response.json['access_token']})
             self.assertEqual(response.status_code, 200)
 
-    def test_api_key_auth(self):
+    def test_login_failure(self):
+        with self.app.test_client() as client:
+            response = client.post(test.LOGIN,
+                                   json={'username': self.username + 'x',
+                                         'password': self.password + 'y'})
+            self.assertEqual(response.status_code, 401)
+
+    def test_api_key_auth_failure(self):
         with self.app.test_client() as client:
             response = client.get("/routes",
                                   headers={'Authorization': 'Basic ' + b64encode("user:invalid")})
             self.assertEqual(response.headers.get('WWW-Authenticate'),
                              'Basic realm="Authentication Required"')
 
-    def test_basic_auth(self):
+    def test_basic_auth_failure(self):
         with self.app.test_client() as client:
             response = client.get("/routes",
                                   headers={'Authorization': 'Token xxxxxxx'})
