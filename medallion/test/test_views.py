@@ -248,7 +248,7 @@ class TestAuth(TaxiiTest):
             response = client.get("/routes",
                                   headers={
                                       'Authorization':
-                                          'Basic ' + b64encode(bytes("user:invalid"))
+                                          'Basic '.encode('utf-8') + b64encode("user:invalid".encode('utf-8'))
                                   })
             self.assertEqual(response.headers.get('WWW-Authenticate'),
                              'Basic realm="Authentication Required"')
