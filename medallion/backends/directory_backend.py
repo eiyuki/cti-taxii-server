@@ -272,7 +272,7 @@ class DirectoryBackend(Backend):
         req_object = [i for i in objects if i['id'] == object_id]
 
         if len(req_object) == 1:
-            return create_bundle([req_object[0]])
+            return create_bundle(req_object)
 
     def get_object_manifest(self, api_root, collection_id, filter_args, allowed_filters, start_index, end_index):
         self.update_discovery_config()

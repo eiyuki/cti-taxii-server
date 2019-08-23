@@ -207,7 +207,7 @@ The structure expected by the mongo db authorization backend code is:
         "updated": ""
       },
       "api_key": {
-        "_id": "<api_key>>",
+        "_id": "<api_key>",
         "user_id": "user@example.com",
         "created": "",
         "last_used_at": "",

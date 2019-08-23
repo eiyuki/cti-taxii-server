@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 
-# "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
 def _base_config(backend, auth):
     return {
         'flask': {
@@ -26,10 +25,9 @@ def memory_config(data_file):
         "module": "medallion.backends.auth_memory_backend",
         "module_class": "AuthMemoryBackend",
         "users": {
-            # "admin": "pbkdf2:sha256:150000$vhWiAWXq$a16882c2eaf4dbb5c55566c93ec256c189ebce855b0081f4903f09a23e8b2344",
+            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea",
             "user1": "pbkdf2:sha256:150000$TVpGAgEI$dd391524abb0d9107ff5949ef512c150523c388cfa6490d8556d604f90de329e",
-            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3",
-            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
+            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3"
         },
         "api_keys": {
             "123456": "admin",
@@ -43,7 +41,8 @@ def directory_config():
     return _base_config({
         "module": "medallion.backends.directory_backend",
         "module_class": "DirectoryBackend",
-        "path": "./test/directory/",
+        # "path": "./test/directory/",  # Local
+        "path": "./medallion/test/directory/",  # Travis CI
         "discovery": {
             "title": "Indicators from the directory backend",
             "description": "Indicators from the directory backend",
@@ -72,10 +71,9 @@ def directory_config():
         "module": "medallion.backends.auth_memory_backend",
         "module_class": "AuthMemoryBackend",
         "users": {
-            # "admin": "pbkdf2:sha256:150000$vhWiAWXq$a16882c2eaf4dbb5c55566c93ec256c189ebce855b0081f4903f09a23e8b2344",
+            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea",
             "user1": "pbkdf2:sha256:150000$TVpGAgEI$dd391524abb0d9107ff5949ef512c150523c388cfa6490d8556d604f90de329e",
-            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3",
-            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
+            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3"
         },
         "api_keys": {
             "123456": "admin",
@@ -94,10 +92,9 @@ def mongodb_config():
         "module": "medallion.backends.auth_memory_backend",
         "module_class": "AuthMemoryBackend",
         "users": {
-            # "admin": "pbkdf2:sha256:150000$vhWiAWXq$a16882c2eaf4dbb5c55566c93ec256c189ebce855b0081f4903f09a23e8b2344",
+            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea",
             "user1": "pbkdf2:sha256:150000$TVpGAgEI$dd391524abb0d9107ff5949ef512c150523c388cfa6490d8556d604f90de329e",
-            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3",
-            "admin": "pbkdf2:sha256:150000$xaVt57AC$6edb6149e820fed48495f21bcf98bcc8663cd413bbd97b91d72c671f8f445bea"
+            "user2": "pbkdf2:sha256:150000$CUo7l9Vz$3ff2da22dcb84c9ba64e2df4d1ee9f7061c1da4f8506618f53457f615178e3f3"
         },
         "api_keys": {
             "123456": "admin",
