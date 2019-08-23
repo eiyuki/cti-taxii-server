@@ -1,13 +1,13 @@
+from base64 import b64encode
 import copy
 import json
 import sys
 import unittest
 import uuid
-from base64 import b64encode
 
 import six
 
-from medallion import (create_app, test)
+from medallion import create_app, test
 from medallion.test import config
 from medallion.test.base_test import TaxiiTest
 from medallion.test.data.initialize_mongodb import reset_db
