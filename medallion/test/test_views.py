@@ -246,7 +246,10 @@ class TestAuth(TaxiiTest):
     def test_api_key_auth_failure(self):
         with self.app.test_client() as client:
             response = client.get("/routes",
-                                  headers={'Authorization': 'Basic ' + b64encode("user:invalid")})
+                                  headers={
+                                      'Authorization':
+                                          'Basic ' + b64encode(b"user:invalid")
+                                  })
             self.assertEqual(response.headers.get('WWW-Authenticate'),
                              'Basic realm="Authentication Required"')
 
