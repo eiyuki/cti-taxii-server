@@ -28,3 +28,9 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: example
     depends_on:
       - mongo
+  dynamo:
+    image: amazon/dynamodb-local
+    restart: always
+    ports:
+      - 8082:8082
+    command: ["-jar", "DynamoDBLocal.jar", "-port", "8082", "-inMemory"]

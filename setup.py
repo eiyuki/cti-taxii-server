@@ -75,5 +75,9 @@ setup(
         "mongo": [
             "pymongo",
         ],
+        "dynamo": [
+            "boto3",
+            "pycryptodome",
+        ],
     },
 )

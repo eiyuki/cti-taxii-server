@@ -90,7 +90,7 @@ To use the Memory backend plugin, include the following in the <config-file>:
 
     {
         "backend": {
-            "module": "medallion.backends.memory_backend",
+            "module": "medallion.backends.taxii.memory_backend",
             "module_class": "MemoryBackend",
             "filename": "<path to json file with initial data>"
         }
@@ -102,7 +102,7 @@ To use the Directory backend plugin, include the following in the <config-file>:
 
     {
         "backend": {
-            "module": "medallion.backends.directory_backend",
+            "module": "medallion.backends.taxii.directory_backend",
             "module_class": "DirectoryBackend",
             "path": "<path to directory>"
         }
@@ -124,7 +124,7 @@ To use the Mongo DB backend plugin, include the following in the <config-file>:
 
     {
          "backend": {
-            "module": "medallion.backends.mongodb_backend",
+            "module": "medallion.backends.taxii.mongodb_backend",
             "module_class": "MongoBackend",
             "uri": "<Mongo DB server url>  # e.g., 'mongodb://localhost:27017/'"
          }
@@ -136,7 +136,7 @@ A description of the Mongo DB structure expected by the mongo db STIX 2.0 data b
 `the documentation <https://medallion.readthedocs.io/en/latest/mongodb_schema.html>`_.
 
 As required by the TAXII specification, *medallion* supports HTTP Basic authorization. In addition, *medallion* supports
-API Token authorization and JWT authorization. When stored in the <config-file>, passwords are encrypted.
+API Token authorization and JWT authorization. When stored in the <config-file>, passwords are hashed.
 
 Here is an example:
 
@@ -205,7 +205,7 @@ To use the Memory Authorization backend plugin, include the following in the <co
 
     {
         "auth": {
-            "module": "medallion.backends.auth_memory_backend",
+            "module": "medallion.backends.auth.memory_auth",
             "module_class": "AuthMemoryBackend",
             "users": {},
             "api_keys": {}
@@ -218,10 +218,21 @@ To use the Mongo DB Authorization backend plugin, include the following in the <
 
     {
         "auth": {
-            "module": "medallion.backends.auth_mongodb_backend",
+            "module": "medallion.backends.auth.mongodb_auth",
             "module_class": "AuthMongodbBackend",
             "uri": "mongodb://root:example@localhost:27017/",
             "db_name": "auth"
+        }
+    }
+
+To use the Dynamo DB Authorization backend plugin, include the following in the <config-file>:
+
+.. code:: json
+
+    {
+        "auth": {
+            "module": "medallion.backends.auth.dynamo_auth",
+            "module_class": "AuthDynamoBackend"
         }
     }
 
