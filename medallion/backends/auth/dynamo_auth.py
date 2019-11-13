@@ -103,7 +103,7 @@ class AuthDynamoBackend(AuthBackend):
     def __init__(self, uri, **kwargs):
         log.info("Connecting to dynamo at %s", uri or 'AWS')
 
-        dynamodb = boto3.resource("dynamodb") if uri is None else boto3.resource("dynamodb", endpoint_url=uri)
+        dynamodb = boto3.resource("dynamodb", endpoint_url=uri) if uri else boto3.resource("dynamodb")
 
         self.users_crypto = Crypto({"secret": kwargs["users_secret"]})
         self.users = dynamodb.Table(kwargs["users_table_name"])
