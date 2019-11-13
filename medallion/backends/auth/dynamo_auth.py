@@ -101,6 +101,8 @@ class Crypto:
 
 class AuthDynamoBackend(AuthBackend):
     def __init__(self, uri, **kwargs):
+        log.info("Connecting to dynamo at %s", uri or 'AWS')
+
         dynamodb = boto3.resource("dynamodb") if uri is None else boto3.resource("dynamodb", endpoint_url=uri)
 
         self.users_crypto = Crypto({"secret": kwargs["users_secret"]})
