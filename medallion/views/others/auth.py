@@ -6,7 +6,7 @@ from medallion import auth, jwt_encode
 auth_bp = Blueprint('auth', __name__)
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/taxii-login', methods=['POST'])
 def login():
     auth_info = request.json
     if not auth_info:
@@ -20,7 +20,7 @@ def login():
     return jsonify({'access_token': jwt_encode(username).decode('utf-8')})
 
 
-@auth_bp.route('/routes', methods=['GET'])
+@auth_bp.route('/taxii-routes', methods=['GET'])
 @auth.login_required
 def routes():
     return jsonify([
