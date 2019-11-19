@@ -30,6 +30,8 @@ class Crypto:
         self.iterations = options.get("iterations", 15000)
         self.encodeas = "hex"
         self.secret_bytes = self._derive_key(options["secret"])
+        secret = options.get("hash_secret")
+        self.hash_secret_bytes = self._derive_key(secret) if secret else self.secret_bytes
 
     def set(self, plaintext):
         xjson = not isinstance(plaintext, str)
@@ -62,6 +64,12 @@ class Crypto:
 
         pt = self._decrypt(self.secret_bytes, ct_bytes, self.algorithm, iv_bytes, at_bytes, aad_bytes)
         return json.loads(pt) if ct["json"] else pt
+
+    def xfm(self, obj):
+        hasher = hashlib.sha256()
+        hasher.update(self.hash_secret_bytes)
+        hasher.update(obj.encode("utf-8"))
+        return hasher.hexdigest()
 
     @staticmethod
     def _digest(key, obj, hashing):
@@ -116,9 +124,16 @@ class AuthDynamoBackend(AuthBackend):
     @staticmethod
     def get_item(table, crypto, sid):
         try:
-            r = table.get_item(Key={"sid": sid})
+            xid = crypto.xfm(sid)
+            r = table.get_item(Key={"xid": xid})
             item = r.get("Item")
-            return None if item is None else crypto.get(item["inf"])
+            if item is None:
+                return None
+            ct = item["ct"]
+            if ct is None:
+                return None
+            pt = crypto.get(ct)
+            return pt.get("v")
         except ClientError as e:
             log.error("Failed to get item", exc_info=e)
         return None
