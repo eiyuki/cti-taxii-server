@@ -7,11 +7,10 @@ import logging
 import secrets
 import time
 
+from flask import request
 from werkzeug.security import pbkdf2_bin
 
 from medallion.backends.auth.base import AuthBackend
-
-from flask import request
 
 try:
     import boto3
@@ -50,18 +49,18 @@ class Crypto:
 
     def set(self, plaintext):
         xjson = not isinstance(plaintext, str)
-        pt_bytes = (json.dumps(plaintext, separators=(":", ",")) if xjson else plaintext).encode("utf-8")
+        pt_bytes = (json.dumps(plaintext, separators=(",", ":")) if xjson else plaintext).encode("utf-8")
         iv_bytes = secrets.token_bytes(self.iv_size)
         aad_bytes = self._digest(iv_bytes + self.secret_bytes, pt_bytes, self.hashing)
         ct_bytes = self._encrypt(self.secret_bytes, pt_bytes, self.algorithm, iv_bytes, aad_bytes)
         hmac_bytes = self._digest(self.secret_bytes, ct_bytes["ct"], self.hashing)
 
         return {
-            "hmac": codecs.encode(hmac_bytes, self.encodeas),
-            "ct": codecs.encode(ct_bytes["ct"], self.encodeas),
-            "at": codecs.encode(ct_bytes["at"], self.encodeas),
-            "aad": codecs.encode(aad_bytes, self.encodeas),
-            "iv": codecs.encode(iv_bytes, self.encodeas),
+            "hmac": codecs.encode(hmac_bytes, self.encodeas).decode("utf-8"),
+            "ct": codecs.encode(ct_bytes["ct"], self.encodeas).decode("utf-8"),
+            "at": codecs.encode(ct_bytes["at"], self.encodeas).decode("utf-8"),
+            "aad": codecs.encode(aad_bytes, self.encodeas).decode("utf-8"),
+            "iv": codecs.encode(iv_bytes, self.encodeas).decode("utf-8"),
             "json": xjson
         }
 
@@ -128,9 +127,6 @@ class AuthDynamoBackend(AuthBackend):
 
         dynamodb = boto3.resource("dynamodb", endpoint_url=uri) if uri else boto3.resource("dynamodb")
 
-        self.sessions_crypto = Crypto({"secret": kwargs["sessions_secret"]})
-        self.sessions = dynamodb.Table(kwargs["sessions_table_name"])
-
         self.users_crypto = Crypto({"secret": kwargs["users_secret"]})
         self.users = dynamodb.Table(kwargs["users_table_name"])
 
@@ -163,10 +159,8 @@ class AuthDynamoBackend(AuthBackend):
             addrs = [request.remote_addr]
 
         t = int(time.time())
-        response = self.audits.put_item(
-            Item={"xid": self.audits_crypto.xfm(key), "ts": t,
-                  "ct": self.audits_crypto.set({"id": key, "v": {"ip": addrs[0]}})}
-        )
+        ct = self.audits_crypto.set({"id": key, "v": {"ip": addrs[0]}})
+        response = self.audits.put_item(Item={"xid": self.audits_crypto.xfm(key), "ts": t, "ct": ct})
         if response["ResponseMetadata"]["HTTPStatusCode"] != 200:
             log.error(json.dumps(response, indent=4, cls=DecimalEncoder))
 
