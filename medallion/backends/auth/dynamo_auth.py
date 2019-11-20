@@ -1,13 +1,17 @@
 import codecs
+import decimal
 import hashlib
 import hmac
 import json
 import logging
 import secrets
+import time
 
 from werkzeug.security import pbkdf2_bin
 
 from medallion.backends.auth.base import AuthBackend
+
+from flask import request
 
 try:
     import boto3
@@ -18,6 +22,17 @@ except ImportError:
 
 # Module-level logger
 log = logging.getLogger(__name__)
+
+
+# Helper class to convert a DynamoDB item to JSON.
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            if abs(o) % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(DecimalEncoder, self).default(o)
 
 
 class Crypto:
@@ -113,13 +128,17 @@ class AuthDynamoBackend(AuthBackend):
 
         dynamodb = boto3.resource("dynamodb", endpoint_url=uri) if uri else boto3.resource("dynamodb")
 
+        self.sessions_crypto = Crypto({"secret": kwargs["sessions_secret"]})
+        self.sessions = dynamodb.Table(kwargs["sessions_table_name"])
+
         self.users_crypto = Crypto({"secret": kwargs["users_secret"]})
         self.users = dynamodb.Table(kwargs["users_table_name"])
-        self.username_column = kwargs["users_table_key"]
 
         self.api_keys_crypto = Crypto({"secret": kwargs["api_keys_secret"]})
         self.api_keys = dynamodb.Table(kwargs["api_keys_table_name"])
-        self.api_key_column = kwargs["api_keys_table_key"]
+
+        self.audits_crypto = Crypto({"secret": kwargs["audits_secret"]})
+        self.audits = dynamodb.Table(kwargs["audits_table_name"])
 
     @staticmethod
     def get_item(table, crypto, sid):
@@ -138,12 +157,26 @@ class AuthDynamoBackend(AuthBackend):
             log.error("Failed to get item", exc_info=e)
         return None
 
+    def record_user_activity(self, key):
+        addrs = request.headers.getlist('X-Forwarded-For')
+        if len(addrs) == 0:
+            addrs = [request.remote_addr]
+
+        t = int(time.time())
+        response = self.audits.put_item(
+            Item={"xid": self.audits_crypto.xfm(key), "ts": t,
+                  "ct": self.audits_crypto.set({"id": key, "v": {"ip": addrs[0]}})}
+        )
+        if response["ResponseMetadata"]["HTTPStatusCode"] != 200:
+            log.error(json.dumps(response, indent=4, cls=DecimalEncoder))
+
     def get_password_hash(self, username):
         user = self.get_item(self.users, self.users_crypto, username)
         if user is None:
             return None
         if user.get("status") != "active":
             return None
+        self.record_user_activity(username)
         return user.get("password")
 
     def get_username_for_api_key(self, api_key_id):
@@ -158,4 +191,5 @@ class AuthDynamoBackend(AuthBackend):
             return None
         if user.get("status") != "active":
             return None
+        self.record_user_activity(api_key_id)
         return user_id
