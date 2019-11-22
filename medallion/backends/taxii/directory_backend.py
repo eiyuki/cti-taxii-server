@@ -17,6 +17,7 @@ class DirectoryBackend(Backend):
         self.discovery_config = self.init_discovery_config(kwargs.get('discovery', None))
         self.api_root_config = self.init_api_root_config(kwargs.get('api-root', None))
         self.collection_config = self.init_collection_config(kwargs.get('collection', None))
+        self.collection_ids = kwargs.get('collection-ids', {})
         self.cache = {}
         self.statuses = []
 
@@ -101,7 +102,7 @@ class DirectoryBackend(Backend):
             c_dir = r.rsplit('/', 2)[1]
 
             if api_root == c_dir:
-                c_id = uuid.uuid3(uuid.NAMESPACE_URL, r)
+                c_id = self.collection_ids.get(api_root, uuid.uuid3(uuid.NAMESPACE_URL, api_root))
                 c_title = "Indicators from directory '{}'".format(c_dir)
 
                 c = {
@@ -117,7 +118,8 @@ class DirectoryBackend(Backend):
 
         count = len(collections)
 
-        collections = collections if end_index == -1 else collections[start_index:end_index]
+        if start_index > 0 or (end_index != -1 and end_index < len(collections)):
+            collections = collections[start_index:end_index]
 
         return count, collections
 
