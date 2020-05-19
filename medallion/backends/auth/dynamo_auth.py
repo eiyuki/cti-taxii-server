@@ -130,8 +130,8 @@ class AuthDynamoBackend(AuthBackend):
         self.users_crypto = Crypto({"secret": kwargs["users_secret"]})
         self.users = dynamodb.Table(kwargs["users_table_name"])
 
-        self.api_keys_crypto = Crypto({"secret": kwargs["api_keys_secret"]})
-        self.api_keys = dynamodb.Table(kwargs["api_keys_table_name"])
+        self.api_keys_crypto = Crypto({"secret": kwargs["apikeys_secret"]})
+        self.api_keys = dynamodb.Table(kwargs["apikeys_table_name"])
 
         self.audits_crypto = Crypto({"secret": kwargs["audits_secret"]})
         self.audits = dynamodb.Table(kwargs["audits_table_name"])
