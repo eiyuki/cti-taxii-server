@@ -18,7 +18,9 @@ class DirectoryBackend(Backend):
         self.api_root_config = self.init_api_root_config(kwargs.get('api-root', None))
         self.collection_config = self.init_collection_config(kwargs.get('collection', None))
         self.collection_ids = kwargs.get('collection-ids', {})
+        self.files = []
         self.cache = {}
+        self.last_cache_refresh_timestamp = datetime.datetime(1970, 1, 1)
         self.statuses = []
 
     # noinspection PyMethodMayBeStatic
@@ -143,13 +145,16 @@ class DirectoryBackend(Backend):
 
         return modified
 
-    def delete_from_cache(self, api_root):
-        p = os.path.join(self.path, api_root)
-        files = [f for f in os.listdir(p) if os.path.isfile(os.path.join(p, f)) and f.endswith('.json')]
-
+    def delete_from_cache(self, api_root, files):
         for f in self.cache[api_root]['files'].keys():
             if f not in files:
                 del self.cache[api_root]['files'][f]
+
+    def get_objects_from_cache(self, api_root):
+        objects = []
+        for k, v in self.cache[api_root]['files'].items():
+            objects.extend(v['objects'])
+        return objects
 
     def add_to_cache(self, api_root, api_root_modified, file_name, file_modified):
         fp = os.path.join(self.path, api_root, file_name)
@@ -174,50 +179,71 @@ class DirectoryBackend(Backend):
             finally:
                 return u_objects
 
+    def update_cache_and_get_objects(self, api_root, api_root_path, api_root_modified, files):
+        # Add to the cache and return objects for collection
+        objects = []
+        for f in files:
+            fp = os.path.join(api_root_path, f)
+            file_modified = self.get_modified_time_stamp(fp)
+
+            cached_files = self.cache[api_root]['files']
+            if f in cached_files and cached_files[f]['modified'] == file_modified:
+                objects.extend(cached_files[f]['objects'])
+            else:
+                u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
+                objects.extend(u_objects)
+        return objects
+
+    def init_cache_and_get_objects(self, api_root, api_root_path, api_root_modified, files):
+        # Initialize the cache and return the objects for the collection
+        objects = []
+        for f in files:
+            fp = os.path.join(api_root_path, f)
+            file_modified = self.get_modified_time_stamp(fp)
+
+            u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
+            objects.extend(u_objects)
+        return objects
+
     def with_cache(self, api_root):
         api_root_path = os.path.join(self.path, api_root)
         api_root_modified = self.get_modified_time_stamp(api_root_path)
 
-        if api_root in self.cache:
-            if self.cache[api_root]['modified'] == api_root_modified:
-                # Return objects from cache
-                objects = []
-                for k, v in self.cache[api_root]['files'].items():
-                    objects.extend(v['objects'])
-                return objects
-            else:
-                # Cleanup the cache
-                self.delete_from_cache(api_root)
+        if api_root in self.cache and 'files' in self.cache[api_root]:
+            dir_list = os.listdir(api_root_path)
+            if len(dir_list) != len(self.cache[api_root]['files'].keys()):
+                self.files = [f for f in dir_list if
+                              os.path.isfile(os.path.join(api_root_path, f)) and f.endswith('.json')]
 
-                # Add to the cache and return objects for collection
-                dir_list = os.listdir(api_root_path)
-                files = [f for f in dir_list if os.path.isfile(os.path.join(api_root_path, f)) and f.endswith('.json')]
+            now = datetime.datetime.now()
+            tdelta = (now - self.last_cache_refresh_timestamp).total_seconds()
 
-                objects = []
-                for f in files:
-                    fp = os.path.join(api_root_path, f)
+            reload_files = []
+
+            # Only refresh the cache for requests spaced
+            if tdelta > (5 * 60):
+                for file_name in self.files:
+                    fp = os.path.join(api_root_path, file_name)
                     file_modified = self.get_modified_time_stamp(fp)
 
-                    cached_files = self.cache[api_root]['files']
-                    if f in cached_files and cached_files[f]['modified'] == file_modified:
-                        objects.extend(cached_files[f]['objects'])
-                    else:
-                        u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
-                        objects.extend(u_objects)
-                return objects
+                    try:
+                        if api_root in self.cache and self.cache[api_root]['files'][file_name]['modified'] != file_modified:
+                            reload_files.append(file_name)
+                    except KeyError:
+                        reload_files.append(file_name)
+
+            if self.cache[api_root]['modified'] == api_root_modified and len(reload_files) == 0:
+                return self.get_objects_from_cache(api_root)
+            else:
+                self.last_cache_refresh_timestamp = datetime.datetime.now()
+                self.delete_from_cache(api_root, self.files)
+                return self.update_cache_and_get_objects(api_root, api_root_path, api_root_modified, reload_files)
         else:
-            # Update the cache and return the objects for the collection
             dir_list = os.listdir(api_root_path)
             files = [f for f in dir_list if os.path.isfile(os.path.join(api_root_path, f)) and f.endswith('.json')]
+            self.last_cache_refresh_timestamp = datetime.datetime.now()
 
-            objects = []
-            for f in files:
-                fp = os.path.join(api_root_path, f)
-                file_modified = self.get_modified_time_stamp(fp)
-
-                u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
-                objects.extend(u_objects)
-            return objects
+            return self.init_cache_and_get_objects(api_root, api_root_path, api_root_modified, files)
 
     def get_objects_without_bundle(self, api_root, collection_id, filter_args, allowed_filters):
         self.update_discovery_config()
@@ -260,11 +286,11 @@ class DirectoryBackend(Backend):
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        objects.sort(key=lambda x: datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'))
+        objects.sort(key=lambda x: (datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'), x["id"]))
 
         count = len(objects)
 
-        objects = objects if end_index == -1 else objects[start_index:end_index]
+        objects = objects[start_index:end_index]
 
         return count, create_bundle(objects)
 
