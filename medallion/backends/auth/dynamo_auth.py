@@ -17,7 +17,7 @@ try:
     from botocore.exceptions import ClientError
     from Crypto.Cipher import AES
 except ImportError:
-    raise ImportError("'boto3' and 'Pycryptodome' packages are required to use this module.")
+    raise ImportError("'boto3' and 'pycryptodome' packages are required to use this module.")
 
 # Module-level logger
 log = logging.getLogger(__name__)
