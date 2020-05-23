@@ -118,7 +118,8 @@ class DirectoryBackend(Backend):
                 collections.append(c)
 
         count = len(collections)
-
+        if end_index < 0:
+            end_index = count + (1 + end_index)
         collections = collections[start_index:end_index + 1]
 
         return count, collections
@@ -289,7 +290,8 @@ class DirectoryBackend(Backend):
         objects.sort(key=lambda x: (datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'), x["id"]))
 
         count = len(objects)
-
+        if end_index < 0:
+            end_index = count + (1 + end_index)
         objects = objects[start_index:end_index + 1]
 
         return count, create_bundle(objects)
@@ -320,7 +322,8 @@ class DirectoryBackend(Backend):
                         )
 
                     count = len(manifest)
-
+                    if end_index < 0:
+                        end_index = count + (1 + end_index)
                     manifest = manifest[start_index:end_index + 1]
 
                     return count, manifest
