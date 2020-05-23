@@ -119,8 +119,7 @@ class DirectoryBackend(Backend):
 
         count = len(collections)
 
-        if start_index > 0 or (end_index != -1 and end_index < len(collections)):
-            collections = collections[start_index:end_index]
+        collections = collections[start_index:end_index + 1]
 
         return count, collections
 
@@ -291,7 +290,7 @@ class DirectoryBackend(Backend):
 
         count = len(objects)
 
-        objects = objects[start_index:end_index]
+        objects = objects[start_index:end_index + 1]
 
         return count, create_bundle(objects)
 
@@ -322,7 +321,7 @@ class DirectoryBackend(Backend):
 
                     count = len(manifest)
 
-                    manifest = manifest if end_index == -1 else manifest[start_index:end_index]
+                    manifest = manifest[start_index:end_index + 1]
 
                     return count, manifest
 
