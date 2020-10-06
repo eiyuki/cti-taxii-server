@@ -20,6 +20,7 @@ class RequestFormatter(logging.Formatter):
             record.source = ",".join(source)
             record.user = getattr(g, 'user', '-')
             record.trace_id = getattr(g, 'trace_id', '-')
+            record.request_time = getattr(g, 'request_time', lambda: '-')()
         else:
             record.method = '-'
             record.path = '-'
@@ -27,13 +28,14 @@ class RequestFormatter(logging.Formatter):
             record.source = '-'
             record.user = '-'
             record.trace_id = '-'
+            record.request_time = '-'
 
         return super(RequestFormatter, self).format(record)
 
 
 def default_request_formatter():
     return RequestFormatter(
-        '%(asctime)s %(levelname)s [%(name)s] %(trace_id)s'
+        '%(asctime)s %(levelname)s [%(name)s] %(trace_id)s %(request_time)s'
         ' %(source)s %(user)s'
         ' "%(method)s %(path)s %(server_protocol)s"'
         ' %(message)s'

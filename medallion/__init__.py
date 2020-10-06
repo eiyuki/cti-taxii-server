@@ -1,3 +1,4 @@
+import time
 from collections import OrderedDict
 from datetime import datetime, timedelta
 import importlib
@@ -204,6 +205,8 @@ def api_key_auth(api_key):
 
 def set_trace_id():
     g.trace_id = "{:08x}".format(random.randrange(0, 0x100000000))
+    begin = time.time()
+    g.request_time = lambda: "%.1fs" % (time.time() - begin)
 
 
 def log_after_request(response):
