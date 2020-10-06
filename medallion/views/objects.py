@@ -33,7 +33,7 @@ def collection_exists(api_root, collection_id):
 def get_range_request_from_headers():
     if request.headers.get("Range") is not None:
         try:
-            matches = re.match(r"^items (\d+)-(\d+)$", request.headers.get("Range"))
+            matches = re.match(r"^items(?: |=)(\d+)-(\d+)$", request.headers.get("Range"))
             start_index = int(matches.group(1))
             end_index = int(matches.group(2))
             # check that the requested number of items isn't larger than the maximum support server page size
