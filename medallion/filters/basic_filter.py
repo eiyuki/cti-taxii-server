@@ -10,23 +10,15 @@ class BasicFilter(object):
         self.filter_args = filter_args
 
     @staticmethod
-    def _belongs_in_class(c, obj):
-        return c[0]["id"] == obj["id"]
-
-    @staticmethod
     def _equivalence_partition_by_id(initial_results):
-        classes = []
-        for o in initial_results:  # for each object
-            # find the class it is in
-            found = False
-            for c in classes:
-                if BasicFilter._belongs_in_class(c, o):  # is it equivalent to this class?
-                    c.append(o)
-                    found = True
-                    break
-            if not found:  # it is in a new class
-                classes.append([o])
-        return classes
+        classes = {}
+        for o in initial_results:
+            objs = classes.get(o["id"])
+            if objs is None:
+                classes[o["id"]] = [o]
+            else:
+                objs.append(o)
+        return classes.values()
 
     @staticmethod
     def filter_by_id(data, id_):
@@ -61,7 +53,8 @@ class BasicFilter(object):
                 prop = "created"
             else:
                 prop = "modified"
-            time_of_obj = dt.datetime.strptime(obj[prop], "%Y-%m-%dT%H:%M:%S.%fZ")
+            # String is sortable, no need to convert to date
+            time_of_obj = obj[prop]
             if first is None:
                 first = last = obj
                 t_first = time_of_obj
