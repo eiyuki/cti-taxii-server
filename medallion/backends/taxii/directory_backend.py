@@ -132,9 +132,9 @@ class DirectoryBackend(Backend):
                 return c
 
     def set_modified_time_stamp(self, objects, modified):
-        for o in objects:
-            o['modified'] = modified
-
+        # Not good to make all the objects have the same modified time
+        # for o in objects:
+        #     o['modified'] = modified
         return objects
 
     def get_modified_time_stamp(self, fp):
@@ -154,6 +154,7 @@ class DirectoryBackend(Backend):
 
         if updated:
             self.cache[api_root]['modified'] = api_root_modified
+            self.cache[api_root]['filters'].clear()
 
     def get_objects_from_cache(self, api_root):
         objects = []
@@ -161,8 +162,10 @@ class DirectoryBackend(Backend):
             objects.extend(v['objects'])
         return objects
 
-    def add_to_cache(self, api_root, api_root_modified, file_name, file_modified):
+    def add_to_cache(self, api_root, file_name, file_modified):
         fp = os.path.join(self.path, api_root, file_name)
+
+        self.cache[api_root]['filters'].clear()
 
         u_objects = []
 
@@ -173,11 +176,6 @@ class DirectoryBackend(Backend):
                 if stix2.get('type', '') == 'bundle' and stix2.get('spec_version', '') == '2.0':
                     objects = stix2.get('objects', [])
                     u_objects = self.set_modified_time_stamp(objects, file_modified)
-
-                    if api_root not in self.cache:
-                        self.cache[api_root] = {'modified': '', 'files': {}}
-
-                    self.cache[api_root]['modified'] = api_root_modified
                     self.cache[api_root]['files'][file_name] = {'modified': file_modified, 'objects': u_objects}
             except Exception as e:
                 raise ProcessingError('error adding objects to cache', 500, e)
@@ -186,6 +184,9 @@ class DirectoryBackend(Backend):
 
     def update_cache_and_get_objects(self, api_root, api_root_path, api_root_modified, files):
         # Add to the cache and return objects for collection
+
+        self.cache[api_root]['modified'] = api_root_modified
+
         objects = []
         for f in files:
             fp = os.path.join(api_root_path, f)
@@ -195,18 +196,20 @@ class DirectoryBackend(Backend):
             if f in cached_files and cached_files[f]['modified'] == file_modified:
                 objects.extend(cached_files[f]['objects'])
             else:
-                u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
+                u_objects = self.add_to_cache(api_root, f, file_modified)
                 objects.extend(u_objects)
         return objects
 
     def init_cache_and_get_objects(self, api_root, api_root_path, api_root_modified, files):
         # Initialize the cache and return the objects for the collection
+
+        self.cache[api_root] = {'modified': api_root_modified, 'files': {}, 'filters': {}}
+
         objects = []
         for f in files:
             fp = os.path.join(api_root_path, f)
             file_modified = self.get_modified_time_stamp(fp)
-
-            u_objects = self.add_to_cache(api_root, api_root_modified, f, file_modified)
+            u_objects = self.add_to_cache(api_root, f, file_modified)
             objects.extend(u_objects)
         return objects
 
@@ -266,19 +269,17 @@ class DirectoryBackend(Backend):
             collection['objects'] = self.with_cache(api_root)
 
             # Filter the collection
-            filtered_objects = []
-
             if filter_args:
-                full_filter = BasicFilter(filter_args)
-                filtered_objects.extend(
-                    full_filter.process_filter(
-                        collection.get('objects', []),
-                        allowed_filters,
-                        collection.get('manifest', [])
-                    )
-                )
+                k = '&'.join(allowed_filters) + '+' + '&'.join([f'{k}={v}' for k, v in sorted(filter_args.items())])
+                filtered_objects = self.cache[api_root]['filters'].get(k)
+                if filtered_objects is None:
+                    full_filter = BasicFilter(filter_args)
+                    data = collection.get('objects', [])
+                    manifest_info = collection.get('manifest', [])
+                    filtered_objects = full_filter.process_filter(data, allowed_filters, manifest_info)
+                    self.cache[api_root]['filters'][k] = filtered_objects
             else:
-                filtered_objects.extend(collection.get('objects', []))
+                filtered_objects = collection.get('objects', [])
 
             return filtered_objects
 
@@ -287,7 +288,7 @@ class DirectoryBackend(Backend):
 
         objects = self.get_objects_without_bundle(api_root, collection_id, filter_args, allowed_filters)
 
-        objects.sort(key=lambda x: (datetime.datetime.strptime(x['modified'], '%Y-%m-%dT%H:%M:%S.%fZ'), x["id"]))
+        objects.sort(key=lambda x: (x['modified'], x["id"]))
 
         count = len(objects)
         if end_index < 0:
@@ -313,7 +314,9 @@ class DirectoryBackend(Backend):
             for collection in collections:
                 if 'id' in collection and collection_id == collection['id']:
                     manifest = collection.get('manifest', [])
-                    if filter_args:
+                    count = len(manifest)
+
+                    if filter_args and count > 0:
                         full_filter = BasicFilter(filter_args)
                         manifest = full_filter.process_filter(
                             manifest,
@@ -321,7 +324,6 @@ class DirectoryBackend(Backend):
                             None
                         )
 
-                    count = len(manifest)
                     if end_index < 0:
                         end_index = count + (1 + end_index)
                     manifest = manifest[start_index:end_index + 1]
