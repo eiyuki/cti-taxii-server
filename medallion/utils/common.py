@@ -100,6 +100,8 @@ def format_datetime(dttm):
 
 
 def convert_to_stix_datetime(timestamp_string):
+    if not timestamp_string.endswith("Z"):
+        timestamp_string += "Z"
     try:
         return dt.datetime.strptime(timestamp_string, "%Y-%m-%dT%H:%M:%S.%fZ")
     except ValueError:

@@ -86,7 +86,7 @@ class DirectoryBackend(Backend):
                     "title": i_title,
                     "description": "",
                     "versions": self.api_root_config['versions'],
-                    "max-content-length": self.api_root_config['max-content-length']
+                    "max_content_length": self.api_root_config['max_content_length']
                 }
 
                 return i
@@ -275,7 +275,12 @@ class DirectoryBackend(Backend):
                 if filtered_objects is None:
                     full_filter = BasicFilter(filter_args)
                     data = collection.get('objects', [])
-                    manifest_info = collection.get('manifest', [])
+                    manifest_info = collection.get('manifest')
+                    if manifest_info is None:
+                        manifest_info = [{
+                            'id': obj['id'],
+                            'date_added': obj.get('modified') or obj.get('created')
+                        } for obj in collection['objects']]
                     filtered_objects = full_filter.process_filter(data, allowed_filters, manifest_info)
                     self.cache[api_root]['filters'][k] = filtered_objects
             else:

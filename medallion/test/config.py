@@ -51,7 +51,7 @@ def directory_config():
             "versions": [
                 "taxii-2.0"
             ],
-            "max-content-length": 9765625
+            "max_content_length": 9765625
         },
         "collection": {
             "id": "",

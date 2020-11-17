@@ -188,12 +188,9 @@ class BasicFilter(object):
         if added_after_date:
             added_after_timestamp = convert_to_stix_datetime(added_after_date)
             new_results = []
+            mi = {i["id"]: i for i in manifest_info}
             for obj in results:
-                info = None
-                for item in manifest_info:
-                    if item["id"] == obj["id"]:
-                        info = item
-                        break
+                info = mi.get(obj["id"])
                 if info:
                     added_date_timestamp = convert_to_stix_datetime(info["date_added"])
                     if added_date_timestamp > added_after_timestamp:
